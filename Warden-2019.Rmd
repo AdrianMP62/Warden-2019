@@ -1,12 +1,22 @@
 ---
-title: "Warden-analysis-020317"
+title: "Warden and Gore waterbird analyses"
 author: "Adrian Pinder"
-date: "02/03/2017"
+date and time: '`r Sys.time()`'
 output: html_document
+software: 'RStudio: Version 1.1.463 – © 2009-2018 RStudio, Inc. R version: `r getRversion()`'
+editor_options: 
+  chunk_output_type: console
 ---
 
+Git repository https://github.com/AdrianMP62/Warden-2019  
 
-testagain for push button
+RStudio: Version 1.1.463 – © 2009-2018 RStudio, Inc. R version: `r getRversion()`  
+Date and time: `r Sys.time()`
+
+Uses the following datafiles:  
+*  
+*  
+*  
 
 
 RStudio: Version 1.0.136 – © 2009-2016 RStudio Inc. R version: `r getRversion()`  
@@ -31,7 +41,7 @@ library(knitr)
 source("bio_env_ext.R") #The Bio_env and bv_step_ext routines below comes from http://menugget.blogspot.com.au/2011/06/clarke-and-ainsworths-bioenv-and-bvstep.html
 ```
 
-Below is the output from an Rmarkdown R script for analyses of waterbird communities of the Warden and Gore wetland systems surveyed between Oct 2006 and Feb 2015.  
+Below is the output from an Rmarkdown R script for analyses of waterbird communities of the Warden and Gore wetland systems surveyed between Oct 2006 and Feb 2019  
 
 
 ###Analysis of Warden and Gore combined waterbird data by season
