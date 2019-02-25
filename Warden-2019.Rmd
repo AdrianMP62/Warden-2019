@@ -38,17 +38,17 @@ library(vegan)
 library(ggplot2)
 library(stringr)
 library(knitr)
+library(simba)
 source("bio_env_ext.R") #The Bio_env and bv_step_ext routines below comes from http://menugget.blogspot.com.au/2011/06/clarke-and-ainsworths-bioenv-and-bvstep.html
 ```
 
-Below is the output from an Rmarkdown R script for analyses of waterbird communities of the Warden and Gore wetland systems surveyed between Oct 2006 and Feb 2019  
-
+Below is the output from an Rmarkdown R script for analyses of waterbird communities of the Warden and Gore wetland systems surveyed between Oct 2006 and Feb 2019
 
 ###Analysis of Warden and Gore combined waterbird data by season
 ```{r}
   input.data <- read.csv("Warden and Gore ground counts by wetland suite 2006-2015.csv") #csv file is a flat file of all species records by survey and system
   WG.bySeason <- input.data #to keep raw data as an intact file for later use
-  WG.bySeason <- WG.bySeason[WG.bySeason$WA_Fauna_Code_Name!="Wetland surveyed but no birds observed",] #remove surveys with no birds
+  WG.bySeason <- WG.bySeason[WG.bySeason$WA_Fauna_Code_Name!="No_birds",] #remove surveys with no birds
   WG.bySeason <- WG.bySeason[-grep("Unidentified", WG.bySeason$Common_Name), ] #remove rows where birds not identified
   WG.bySeason <- aggregate(data=WG.bySeason, Count ~ Common_Name + Survey, FUN="sum") #sum data by common name and survey period
   WG.bySeason$Count <- sqrt(WG.bySeason$Count) #convert counts to square root
