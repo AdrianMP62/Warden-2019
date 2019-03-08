@@ -37,6 +37,7 @@ library(ggplot2)
 library(stringr)
 library(knitr)
 library(simba)
+library(zoo)
 source("bio_env_ext.R") #The Bio_env and bv_step_ext routines below comes from http://menugget.blogspot.com.au/2011/06/clarke-and-ainsworths-bioenv-and-bvstep.html
 ```
 
@@ -50,15 +51,21 @@ Below is the output from an Rmarkdown R script for analyses of waterbird communi
   WG.bySeason <- WG.bySeason[-grep("Unidentified", WG.bySeason$CommonName), ] #remove rows where birds not identified
   WG.bySeason <- WG.bySeason[-grep("Grassbird", WG.bySeason$CommonName), ] #remove records of little grassbird
   WG.bySeason <- WG.bySeason[!(WG.bySeason$Date == "23/02/2010" & WG.bySeason$SiteCode == "WRP004"), ] #remove duplicate data for Mullet Feb 2010
-  WG.bySeason$Survey <- as.Date(WG.bySeason$Date, format="%d/%m/%Y") #create Survey field from Date
+  WG.bySeason$Date <- as.Date(WG.bySeason$Date, format="%d/%m/%Y")
+  WG.bySeason$Survey <- WG.bySeason$Date #create Survey field from Date
   WG.bySeason$Survey <- format(as.Date(WG.bySeason$Survey), "%b-%Y") #change format to mmm-YYYY
-  WG.bySeason <- aggregate(data=WG.bySeason, Count ~ CommonName + Survey, FUN="sum") #sum data by common name and survey period
-  WG.bySeason$Count <- sqrt(WG.bySeason$Count) #convert counts to square root
+  yq <- as.yearqtr(as.yearmon(WG.bySeason$Date, "%Y/%m/%d"))
+WG.bySeason$Season <- factor(format(yq, "%q"), levels = 1:4, labels = c("summer", "autumn", "winter", "spring")) #create Season (spring vs summer) variable
+```
+
+```{r aggregare by survey and species}
+  WG.bySeason.agg <- aggregate(data=WG.bySeason, Count ~ CommonName + Survey + Season, FUN="sum") #sum data by common name and survey period
+  WG.bySeason.agg$Count <- sqrt(WG.bySeason.agg$Count) #convert counts to square root
 ```
 
 ```{r}
-  WG.bySeason <- melt(WG.bySeason) #melt data 
-  WG.bySeason.m <- dcast(WG.bySeason, Survey ~ CommonName, fill="0") #create matrix from flat-file
+  WG.bySeason.agg <- melt(WG.bySeason.agg) #melt data 
+  WG.bySeason.m <- dcast(WG.bySeason.agg, Survey ~ CommonName, fill="0") #create matrix from flat-file
   rownames(WG.bySeason.m) <- WG.bySeason.m [,1] #use first column (season) as row.names
   WG.bySeason.m [,1] <- NULL #remove season column
   WG.bySeason.m <- data.matrix(WG.bySeason.m, rownames.force = NA) #convert data to numeric format (required for metaMDS)
@@ -74,7 +81,7 @@ WG.MDS.bySeas
 ```
 
 ```{r}
-surv.seas<- unique(input.data[c("Survey", "Season")]) #extract a unique list of survey codes (mmm-yy) and season so can later allocate a season to each survey in the MDS output
+surv.seas<- unique(WG.bySeason[c("Survey", "Season")]) #extract a unique list of survey codes (mmm-yy) and season so can later allocate a season to each survey in the MDS output
   WG.MDS.bySeas.pts <- as.data.frame(WG.MDS.bySeas$points) #extract ordination coordinates (points)
   WG.MDS.bySeas.pts$Survey <- row.names(WG.MDS.bySeas.pts) #use survey period as row.names
   WG.MDS.bySeas.pts$Season <- surv.seas[match(WG.MDS.bySeas.pts$Survey, surv.seas$Survey), 2] #adds 'season' (spring versus summer) field to points by matching survey between points and surv.seas
@@ -83,7 +90,7 @@ surv.seas<- unique(input.data[c("Survey", "Season")]) #extract a unique list of 
   
 Ordination plot of Warden and Gore data combined by season, stress = `r WG.MDS.bySeas$stress`  
 ```{r, include=TRUE}
-  ggplot(WG.MDS.bySeas.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.4, 0.5) + ylim(-0.3, 0.3) + geom_point(aes(colour=Season), size=5) + coord_fixed(ratio = 1) + geom_text(aes(label=Survey), size=3, vjust=1, hjust=1.3)
+  ggplot(WG.MDS.bySeas.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.4, 4) + ylim(-0.3, 1) + geom_point(aes(colour=Season), size=5) + coord_fixed(ratio = 1) + geom_text(aes(label=Survey), size=3, vjust=1, hjust=1.3)
 ```
 
 ```{r}
