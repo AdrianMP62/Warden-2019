@@ -43,28 +43,22 @@ source("bio_env_ext.R") #The Bio_env and bv_step_ext routines below comes from h
 Below is the output from an Rmarkdown R script for analyses of waterbird communities of the Warden and Gore wetland systems surveyed between Oct 2006 and Feb 2019
 
 ###Multi-variate analysis of Warden and Gore combined waterbird data by season. This data includes aerial counts for Warden system wetlands for 2006 to 2009 where ground counts not undertaken. These include Neridup and Bandy Creek (Oct 2006- Nov 2008), Ewans (Oct 2006) and Ewans and Mullet combined (Nov 2008 - have to ignore Nov 2008 Mullet ground counts), North Wheatfield (Oct 2006, Oct 2007, Nov 2008),  Gore data is included only for November 2009 onwards when ground counts are available. Pink Lake is excluded from analyses because it wasnt consistently surveyed. Birds counted only while in air and not allocated to any wetland are given the site code 'In flight'.
-```{r}
+
+```{r import and restructure Warden and Gore waterbird data}
   input.data <- read.csv("Warden_Gore_by_suite_06_19.csv") #csv file is a flat file of all species records by survey and system and survey method
   WG.bySeason <- input.data #to keep raw data as an intact file for later use
   WG.bySeason <- WG.bySeason[-grep("Unidentified", WG.bySeason$CommonName), ] #remove rows where birds not identified
   WG.bySeason <- WG.bySeason[-grep("Grassbird", WG.bySeason$CommonName), ] #remove records of little grassbird
   WG.bySeason <- WG.bySeason[!(WG.bySeason$Date == "23/02/2010" & WG.bySeason$SiteCode == "WRP004"), ] #remove duplicate data for Mullet Feb 2010
-  WG.bySeason$Survey <- format(as.Date(WG.bySeason$Date), "%b-%Y") #create survey period column
+  WG.bySeason$Survey <- as.Date(WG.bySeason$Date, format="%d/%m/%Y") #create Survey field from Date
+  WG.bySeason$Survey <- format(as.Date(WG.bySeason$Survey), "%b-%Y") #change format to mmm-YYYY
   WG.bySeason <- aggregate(data=WG.bySeason, Count ~ CommonName + Survey, FUN="sum") #sum data by common name and survey period
   WG.bySeason$Count <- sqrt(WG.bySeason$Count) #convert counts to square root
 ```
 
-
-```{r}
-str(WG.bySeason)
-WG.bySeason$Date <- format(as.Date(WG.bySeason$Date), "%b-%Y")
-```
-
-
-
 ```{r}
   WG.bySeason <- melt(WG.bySeason) #melt data 
-  WG.bySeason.m <- dcast(WG.bySeason, Survey ~ Common_Name, fill="0") #create matrix from flat-file
+  WG.bySeason.m <- dcast(WG.bySeason, Survey ~ CommonName, fill="0") #create matrix from flat-file
   rownames(WG.bySeason.m) <- WG.bySeason.m [,1] #use first column (season) as row.names
   WG.bySeason.m [,1] <- NULL #remove season column
   WG.bySeason.m <- data.matrix(WG.bySeason.m, rownames.force = NA) #convert data to numeric format (required for metaMDS)
