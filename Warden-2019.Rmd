@@ -14,7 +14,7 @@ RStudio: Version 1.1.463 – © 2009-2018 RStudio, Inc. R version: `r getRversio
 Date and time: `r Sys.time()`
 
 Uses the following datafiles:  
-*  
+*  Warden_Gore_by_suite_06_19.csv (System,	SurveyType,	SiteName,	SiteCode,	Subsite	Date,	CommonName,	SpeciesCode,	Count) (e.g. Warden,	aerial,	Neridup Suite,	WRP001,	combined,	11/10/2006,	Great Egret,	greg,	1)
 *  
 *  
 
@@ -45,7 +45,7 @@ Below is the output from an Rmarkdown R script for analyses of waterbird communi
 ###Multi-variate analysis of Warden and Gore combined waterbird data by season. This data includes aerial counts for Warden system wetlands for 2006 to 2009 where ground counts not undertaken. These include Neridup and Bandy Creek (Oct 2006- Nov 2008), Ewans (Oct 2006) and Ewans and Mullet combined (Nov 2008 - have to ignore Nov 2008 Mullet ground counts), North Wheatfield (Oct 2006, Oct 2007, Nov 2008),  Gore data is included only for November 2009 onwards when ground counts are available. Pink Lake is excluded from analyses because it wasnt consistently surveyed. Birds counted only while in air and not allocated to any wetland are given the site code 'In flight'.
 
 ```{r import and restructure Warden and Gore waterbird data}
-  input.data <- read.csv("Warden_Gore_by_suite_06_19.csv") #csv file is a flat file of all species records by survey and system and survey method
+  input.data <- read.csv("Warden_Gore_by_suite_06_19.csv") #csv file is a flat file of all species records by survey date, site code, system and survey method
   WG.bySeason <- input.data #to keep raw data as an intact file for later use
   WG.bySeason <- WG.bySeason[-grep("Unidentified", WG.bySeason$CommonName), ] #remove rows where birds not identified
   WG.bySeason <- WG.bySeason[-grep("Grassbird", WG.bySeason$CommonName), ] #remove records of little grassbird
