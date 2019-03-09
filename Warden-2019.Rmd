@@ -43,17 +43,18 @@ source("bio_env_ext.R") #The Bio_env and bv_step_ext routines below comes from h
 
 Below is the output from an Rmarkdown R script for analyses of waterbird communities of the Warden and Gore wetland systems surveyed between Oct 2006 and Feb 2019
 
-###Multi-variate analysis of Warden and Gore combined waterbird data by season. This data includes aerial counts for Warden system wetlands for 2006 to 2009 where ground counts not undertaken. These include Neridup and Bandy Creek (Oct 2006- Nov 2008), Ewans (Oct 2006) and Ewans and Mullet combined (Nov 2008 - have to ignore Nov 2008 Mullet ground counts), North Wheatfield (Oct 2006, Oct 2007, Nov 2008),  Gore data is included only for November 2009 onwards when ground counts are available. Pink Lake is excluded from analyses because it wasnt consistently surveyed. Birds counted only while in air and not allocated to any wetland are given the site code 'In flight'.
+###Multi-variate analysis of Warden and Gore combined waterbird data by season.
+This analysis is based primarily on ground counts. Data includes aerial counts for Warden system wetlands for 2006 to 2009 where ground counts not undertaken. These include Neridup and Bandy Creek (Oct 2006- Nov 2008), Ewans (Oct 2006) and Ewans and Mullet combined (Nov 2008 - have to ignore Nov 2008 Mullet ground counts), North Wheatfield (Oct 2006, Oct 2007, Nov 2008). Note that the Nov 2008 aerial data was collected two weeks prior to the ground counts.  Gore data is included only for November 2009 onwards when ground counts are available. Pink Lake is excluded from analyses because it wasnt consistently surveyed. Birds counted only while in air and not allocated to any particular wetland are given the site code 'In flight'.
 
 ```{r import and restructure Warden and Gore waterbird data}
-  input.data <- read.csv("Warden_Gore_by_suite_06_19.csv") #csv file is a flat file of all species records by survey date, site code, system and survey method
-  WG.bySeason <- input.data #to keep raw data as an intact file for later use
+ WG.bySeason <- input.data <- read.csv("Warden_Gore_by_suite_06_19.csv") #csv file is a flat file of all species records by survey date, site code, system and survey method
   WG.bySeason <- WG.bySeason[-grep("Unidentified", WG.bySeason$CommonName), ] #remove rows where birds not identified
   WG.bySeason <- WG.bySeason[-grep("Grassbird", WG.bySeason$CommonName), ] #remove records of little grassbird
   WG.bySeason <- WG.bySeason[!(WG.bySeason$Date == "23/02/2010" & WG.bySeason$SiteCode == "WRP004"), ] #remove duplicate data for Mullet Feb 2010
   WG.bySeason$Date <- as.Date(WG.bySeason$Date, format="%d/%m/%Y")
   WG.bySeason$Survey <- WG.bySeason$Date #create Survey field from Date
   WG.bySeason$Survey <- format(as.Date(WG.bySeason$Survey), "%b-%Y") #change format to mmm-YYYY
+  WG.bySeason$Survey <- gsub("Oct-2018", "Nov-2018", WG.bySeason$Survey) #lump survey dates that straddle Oct/Nov 2018
   yq <- as.yearqtr(as.yearmon(WG.bySeason$Date, "%Y/%m/%d"))
 WG.bySeason$Season <- factor(format(yq, "%q"), levels = 1:4, labels = c("summer", "autumn", "winter", "spring")) #create Season (spring vs summer) variable
 ```
@@ -82,43 +83,44 @@ WG.MDS.bySeas
 
 ```{r}
 surv.seas<- unique(WG.bySeason[c("Survey", "Season")]) #extract a unique list of survey codes (mmm-yy) and season so can later allocate a season to each survey in the MDS output
+surv.seas <- surv.seas[order(surv.seas$Survey), ] #reorder alphabetically by Survey (Dec-2011 to Oct-2012)
   WG.MDS.bySeas.pts <- as.data.frame(WG.MDS.bySeas$points) #extract ordination coordinates (points)
   WG.MDS.bySeas.pts$Survey <- row.names(WG.MDS.bySeas.pts) #use survey period as row.names
-  WG.MDS.bySeas.pts$Season <- surv.seas[match(WG.MDS.bySeas.pts$Survey, surv.seas$Survey), 2] #adds 'season' (spring versus summer) field to points by matching survey between points and surv.seas
+  WG.MDS.bySeas.pts$Season <- surv.seas[match(WG.MDS.bySeas.pts$Survey, surv.seas$Survey), 2] #adds 'season' (spring versus summer) (from column '2' of Surv.Seas) to ordination points by matching survey between points and surv.seas
 ```
 <br>
   
 Ordination plot of Warden and Gore data combined by season, stress = `r WG.MDS.bySeas$stress`  
 ```{r, include=TRUE}
-  ggplot(WG.MDS.bySeas.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.4, 4) + ylim(-0.3, 1) + geom_point(aes(colour=Season), size=5) + coord_fixed(ratio = 1) + geom_text(aes(label=Survey), size=3, vjust=1, hjust=1.3)
+  ggplot(WG.MDS.bySeas.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.4, 0.35) + ylim(-0.3, 0.2) + geom_point(aes(colour=Season), size=5) + coord_fixed(ratio = 1) + geom_text(aes(label=Survey), size=3, vjust=1, hjust=1.3)
 ```
 
 ```{r}
   WG.bySeas.Simper <- simper(WG.bySeason.m, surv.seas$Season) #Simper analysis to determine which species best correlated with differences between seasons of whole dataset
   summary(WG.bySeas.Simper)
+  str(WG.bySeas.Simper)
 ```
 
 ```{r extract-top-8-species -from simper-for-contrasting-seasons}
-  WG.Simper.ext <- WG.bySeas.Simper$Spring_Summer #extract results from Simper analysis
+  WG.Simper.ext <- WG.bySeas.Simper$spring_summer #extract results from Simper analysis
   WG.Sim.Average <- as.data.frame(WG.Simper.ext$average) #extract the average difference data
   WG.Sim.Spec <- as.data.frame(WG.Simper.ext$species) #extract species names
-  WG.bySeas.Simper <- cbind(WG.Sim.Spec, WG.Sim.Average) #combine species with averages
-  WG.bySeas.Simper <- WG.bySeas.Simper[ order(-WG.bySeas.Simper[, 2]), ] #order species and averages by average
-colnames(WG.bySeas.Simper) = c("Species", "cont") #add new column names
-  WG.bySeas.Simper <- as.vector(WG.bySeas.Simper[1:8, 1]) #extracts 
-  WG.bySeas.Simper <- gsub("\\.", " ", WG.bySeas.Simper)
+  WG.bySeas.Simper2 <- cbind(WG.Sim.Spec, WG.Sim.Average) #combine species with averages
+  WG.bySeas.Simper2 <- WG.bySeas.Simper2[ order(-WG.bySeas.Simper2[, 2]), ] #order species and averages by average
+colnames(WG.bySeas.Simper2) = c("Species", "cont") #add new column names
+  WG.bySeas.Simper2 <- as.vector(WG.bySeas.Simper2[1:8, 1]) #extracts 
 ```
 
 ```{r}
-  agg.spec.data <- aggregate(data=input.data, Count ~ Common_Name + Season + Survey, FUN="sum") #aggregate counts by common name, season and survey
-  agg.spec.data <- as.data.frame(sapply(agg.spec.data, gsub, pattern = "-", replacement = " ")) #replace dashes with spaces
+  agg.spec.data <- aggregate(data=WG.bySeason, Count ~ CommonName + Season + Survey, FUN="sum") #aggregate counts by common name, season and survey
+  #agg.spec.data <- as.data.frame(sapply(agg.spec.data, gsub, pattern = "-", replacement = " ")) #replace dashes with spaces
 ```
 
 ```{r extract-counts-of-top-8-species-from-simper-for-contrasting-system}
-  agg.spec.data.8 <- agg.spec.data[agg.spec.data$Common_Name %in% WG.bySeas.Simper, ]
-  rownames(agg.spec.data.8) <- NULL
-  agg.spec.data.8 <- as.data.frame(agg.spec.data.8[, -3])
-  agg.spec.data.8$Common_Name <- as.character(agg.spec.data.8$Common_Name)
+  agg.spec.data.8 <- agg.spec.data[agg.spec.data$CommonName %in% WG.bySeas.Simper2, ]
+  rownames(agg.spec.data.8) <- NULL #reset row names
+  agg.spec.data.8 <- as.data.frame(agg.spec.data.8[, -3]) #remove Survey field
+  agg.spec.data.8$CommonName <- as.character(agg.spec.data.8$CommonName)
 ```
 
 ```{r write-then-read-top-8-species-data-to-convert-to-numeric-for-analysis-by-season}
@@ -128,14 +130,14 @@ colnames(WG.bySeas.Simper) = c("Species", "cont") #add new column names
 
 Box plots of abundance in spring and summer for top eight species from simper analysis  
 ```{r, include=TRUE, facet-wrapped-box-plots-of-the-top-8-simper-species-by-season}
-  qplot(x=Season, y=Count, data=agg.spec.data.8, geom="boxplot") + facet_wrap(~ Common_Name, scales="free_y", ncol=2)
+  qplot(x=Season, y=Count, data=agg.spec.data.8, geom="boxplot") + facet_wrap(~ CommonName, scales="free_y", ncol=2)
 ```
 
 
 ####ORDINATION OF GORE SYSTEM VERSUS WARDEN SYSTEM
 
 ```{r import-reduce-aggregate-data}
-  input.data2 <- read.csv("Warden and Gore ground counts by wetland suite 2006-2015.csv")
+ input.data2 <- read.csv("Warden and Gore ground counts by wetland suite 2006-2015.csv")
   WG.bySystem <- input.data2
   WG.bySystem <- WG.bySystem[WG.bySystem$WA_Fauna_Code_Name!="Wetland surveyed but no birds observed",]
   WG.bySystem <- WG.bySystem[-grep("Unidentified", WG.bySystem$Common_Name), ] #remove data for birds not identified to species
@@ -192,11 +194,11 @@ colnames(WG.bySyst.Sim.ext) = c("Species", "cont") #add new column names
 ```
 
 ```{r}
-agg.spec.data.2 <- aggregate(data=input.data2, Count ~ Common_Name + Survey + System, FUN="sum") #aggregare count data by system and survey
+agg.spec.data.2 <- aggregate(data=WG.bySeason, Count ~ CommonName + Survey + System, FUN="sum") #aggregare count data by system and survey
 agg.spec.data.2 <- as.data.frame(sapply(agg.spec.data.2, gsub, pattern = "-", replacement = " ")) #replace dashes in species names with spaces to match simper output
 agg.spec.data.2 <- agg.spec.data.2[agg.spec.data.2$Common_Name %in% WG.bySyst.Sim.ext, ] #restrict aggregated counts to just those top 8 species from simper
 rownames(agg.spec.data.2) <- NULL
-agg.spec.data.2$Common_Name <- as.character(agg.spec.data.2$Common_Name)
+agg.spec.data.2$CommonName <- as.character(agg.spec.data.2$CommonName)
 write.csv(agg.spec.data.2, "agg.spec.data.2.csv")
 agg.spec.data.2 <- read.csv("agg.spec.data.2.csv")
 ```
