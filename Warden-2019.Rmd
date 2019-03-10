@@ -15,7 +15,7 @@ Date and time: `r Sys.time()`
 
 Uses the following datafiles:  
 *  Warden_Gore_by_suite_06_19.csv (System,	SurveyType,	SiteName,	SiteCode,	Subsite	Date,	CommonName,	SpeciesCode,	Count) (e.g. Warden,	aerial,	Neridup Suite,	WRP001,	combined,	11/10/2006,	Great Egret,	greg,	1)
-*  
+*  Average depths.csv (average depths of Warden wetlands for each survey period).
 *  
 
 Date and time: `r Sys.time()`
