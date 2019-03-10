@@ -263,12 +263,7 @@ qplot(x=System, y=Count2, data=agg.spec.data.2, geom="boxplot") + facet_wrap(~ C
 
 ##WARDEN SYSTEM ANALYSIS ONLY  
 
-```{r specify_season_for_Warden_only_ordination}
-#specify season to be worked on: "Spring" or "Summer"
-Season <- "spring"
-```
-
-```{r}
+```{r input_data_and_prepare_for_just_Warden_ordinations}
 input.data3 <- read.csv("Warden_Gore_by_suite_06_19.csv")
 Warden <- input.data3
 Warden <- Warden[-grep("Unidentified", Warden$CommonName), ] #remove rows where birds not identified
@@ -286,14 +281,14 @@ Warden$Season <- factor(format(yq, "%q"), levels = 1:4, labels = c("summer", "au
   Warden.spr <- Warden[Warden$Season == "spring", ] #spring only data
 ```
 
-```{r aggregate_count_data_by_Common_name}
+```{r aggregate_count_data_by_Common_name_for_each_season}
 Warden.sum <- aggregate(data=Warden.sum, Count ~ CommonName + Survey, FUN="sum") #aggregate count data by species and survey
 Warden.spr <- aggregate(data=Warden.spr, Count ~ CommonName + Survey, FUN="sum") #aggregate count data by species and survey
 ```
 
 ```{r convert-Warden-only-data-to-seasonal-matrices}
 Warden.sum.m <- melt(Warden.sum)
-Warden.sum.m <- dcast(Wardensum..m, Survey ~ CommonName, fill="0")
+Warden.sum.m <- dcast(Warden.sum.m, Survey ~ CommonName, fill="0")
 rownames(Warden.sum.m) <- Warden.sum.m[,1]
 Warden.sum.m[,1] <- NULL
 write.csv(Warden.sum.m, "Warden_sum_m.csv")
@@ -313,8 +308,10 @@ Warden.spr.MDS <- metaMDS(Warden.spr.m, distance = "bray")
 ```
 
 ```{r}
-Warden.sum.pts <- as.data.frame(Warden.sum.MDS$points) #extract coordinates from ordination
+Warden.sum.MDS.pts <- as.data.frame(Warden.sum.MDS$points) #extract coordinates from ordination
 Warden.sum.MDS.pts$Survey <- row.names(Warden.sum.MDS.pts)
+Warden.spr.MDS.pts <- as.data.frame(Warden.spr.MDS$points) #extract coordinates from ordination
+Warden.spr.MDS.pts$Survey <- row.names(Warden.spr.MDS.pts)
 #W.points$season <- c("spring","summer","summer","summer","summer","summer","summer","summer","spring","spring","spring","spring","spring","spring","spring","spring") # add season labels as new column in dataframe
 ```
 
@@ -325,26 +322,25 @@ Warden.pts$depth <- av.depths$depth #create new field for depth in the file with
 Warden.pts$depth <- as.numeric(Warden.pts$depth)^3+30
 ```
 
-Ordination graph of Warden system waterbird communities by surveys undertaken in spring, `r Warden.MDS$stress`  
+Ordination graph of Warden system waterbird communities by surveys undertaken in summer, `r Warden.MDS$stress`  
 ```{r, include=TRUE}
-#note, need to restrict data to just spring, see first code chunk in this section
-ggplot(Warden.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.3, 0.5) + ylim(-0.35, 0.3) + coord_fixed(ratio = 1) + geom_point(shape=21, size=7, alpha=0.5, fill="blue", stroke=2) + geom_text(aes(label = Survey), vjust=2, hjust=1) + theme(legend.position = "none")
-```
-
-Ordination graph of Warden system waterbird communities by survey with surveys undertaken in spring scaled and coloured by average depth of gauged wetlands  
-```{r, include=TRUE}
-# note need to restrict both data matrix and average depths to just spring surveys
-ggplot(Warden.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.3, 0.5) + ylim(-0.35, 0.3) + coord_fixed(ratio = 1) + geom_point(aes(size = depth, colour=depth)) + scale_size(range = c(3, 12)) + geom_text(aes(label = Survey), vjust=2, hjust=1) + theme(legend.position = "none")
-```
-
-Ordination graph of Warden system waterbird communities by surveys undertaken in summer  
-```{r, include=TRUE}
-# note, need to restrict data to just summer, see first code chunk in this section
-ggplot(Warden.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.3, 0.3) + ylim(-0.25, 0.4) + coord_fixed(ratio = 1) + geom_point(shape=21, size=7, alpha=0.5, fill="blue", stroke=2) + geom_text(aes(label = Survey), vjust=2, hjust=1.5) + theme(legend.position = "none")
+ggplot(Warden.sum.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.3, 0.5) + ylim(-0.35, 0.3) + coord_fixed(ratio = 1) + geom_point(shape=21, size=7, alpha=0.5, fill="blue", stroke=2) + geom_text(aes(label = Survey), vjust=2, hjust=1) + theme(legend.position = "none")
 ```
 
 Ordination graph of Warden system waterbird communities by survey with surveys undertaken in summer scaled and coloured by average depth of gauged wetlands  
 ```{r, include=TRUE}
+
+ggplot(Warden.spr.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.3, 0.5) + ylim(-0.35, 0.3) + coord_fixed(ratio = 1) + geom_point(aes(size = depth, colour=depth)) + scale_size(range = c(3, 12)) + geom_text(aes(label = Survey), vjust=2, hjust=1) + theme(legend.position = "none")
+```
+
+Ordination graph of Warden system waterbird communities by surveys undertaken in spring  
+```{r, include=TRUE}
+# note, need to restrict data to just summer, see first code chunk in this section
+ggplot(Warden.spr.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.3, 0.3) + ylim(-0.3, 0.3) + coord_fixed(ratio = 1) + geom_point(shape=21, size=7, alpha=0.5, fill="blue", stroke=2) + geom_text(aes(label = Survey), vjust=2, hjust=1.2) + theme(legend.position = "none")
+```
+
+Ordination graph of Warden system waterbird communities by survey with surveys undertaken in spring scaled and coloured by average depth of gauged wetlands  
+```{r, include=TRUE}
 # note need to restrict both data matrix and average depths to just summer surveys
-ggplot(Warden.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.3, 0.3) + ylim(-0.25, 0.3) + coord_fixed(ratio = 1) + geom_point(aes(size = depth, colour= depth)) + scale_size(range = c(3, 12)) + geom_text(aes(label = Survey), vjust=2, hjust=1.5) + theme(legend.position = "none")
+ggplot(Warden.spr.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.3, 0.3) + ylim(-0.25, 0.3) + coord_fixed(ratio = 1) + geom_point(aes(size = depth, colour= depth)) + scale_size(range = c(3, 12)) + geom_text(aes(label = Survey), vjust=2, hjust=1.5) + theme(legend.position = "none")
 ```
