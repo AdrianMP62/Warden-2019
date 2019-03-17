@@ -7,7 +7,7 @@ software: 'RStudio: Version 1.1.463 – © 2009-2018 RStudio, Inc. R version: `r
 editor_options: 
   chunk_output_type: console
 ---
-
+  
 Git repository https://github.com/AdrianMP62/Warden-2019  
 
 RStudio: Version 1.1.463 – © 2009-2018 RStudio, Inc. R version: `r getRversion()`  
@@ -54,7 +54,7 @@ These analyses are based primarily on ground counts. Aerial counts are only for 
 This ordination shows that, by and large, with data from systems (Warden and Gore) combined, there is a difference between waterbird communities present in spring and those present in late summer.
 
 ```{r import-and-restructure-Warden-and-Gore-waterbird-data}
-input.data <- read.csv("../raw_data/Warden_Gore_by_suite_06_19.csv") #csv file is a flat file of all species records by survey date, site code, system and survey method
+input.data <- read.csv("./raw_data/Warden_Gore_by_suite_06_19.csv") #csv file is a flat file of all species records by survey date, site code, system and survey method
  WG.bySeason <- input.data
   WG.bySeason <- WG.bySeason[-grep("Unidentified", WG.bySeason$CommonName), ] #remove rows where birds not identified
   WG.bySeason <- WG.bySeason[-grep("Grassbird", WG.bySeason$CommonName), ] #remove records of little grassbird
@@ -309,13 +309,14 @@ Warden.spr.m <- read.csv("Warden.spr_m.csv", row.names=1)
 ```
 
 MDS unconstrained ordination using metaMDS in package vegan to analyse effects of season within the Warden system
-```{r2and3D-ordinations-Wardenonly}
+```{r 2and3D-ordinations-Wardenonly}
 Warden.sum.MDS <- metaMDS(Warden.sum.m, distance = "bray")
 Warden.spr.MDS <- metaMDS(Warden.spr.m, distance = "bray")
 ```
 
-```{r extract-Warde-coords-for plot}
-Warden.sum.MDS.pts <- as.data.frame(Warden.sum.MDS$points) #extract coordinates from ordination
+```{r extract-Warden-coords-for plot}
+Warden.sum.MDS.pts <- Warden.sum.MDS$points #extract coordinates from ordination
+Warden.sum.MDS.pts <- as.data.frame(Warden.sum.MDS.pts)
 Warden.sum.MDS.pts$Survey <- row.names(Warden.sum.MDS.pts)
 Warden.spr.MDS.pts <- as.data.frame(Warden.spr.MDS$points) #extract coordinates from ordination
 Warden.spr.MDS.pts$Survey <- row.names(Warden.spr.MDS.pts)
@@ -332,11 +333,11 @@ Warden.sum.MDS.pts$depth <- as.numeric(av.depths.sum$depth)^3+30 #create new fie
 
 Ordination graph of Warden system waterbird communities by survey with surveys undertaken in summer scaled and coloured by average depth of gauged wetlands  
 ```{r summer-Warden-ord-plot-bydepths, include=TRUE}
-ggplot(Warden.sum.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.3, 0.5) + ylim(-0.35, 0.3) + coord_fixed(ratio = 1) + geom_point(aes(size = depth, colour=depth)) + scale_size(range = c(3, 12)) + geom_text(aes(label = Survey), vjust=2, hjust=1) + theme(legend.position = "none")
+ggplot(Warden.sum.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.3, 0.5) + ylim(-0.35, 0.3) + coord_fixed(ratio = 1) + geom_point(aes(size = depth, colour=depth)) + scale_size(range = c(3, 12)) + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none")
 ```
 
 Ordination graph of Warden system waterbird communities by survey with surveys undertaken in spring scaled and coloured by average depth of gauged wetlands  
 ```{r spring-Warden-ord-plot-bydepths, include=TRUE}
 # note need to restrict both data matrix and average depths to just summer surveys
-ggplot(Warden.spr.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.3, 0.3) + ylim(-0.25, 0.3) + coord_fixed(ratio = 1) + geom_point(aes(size = depth, colour= depth)) + scale_size(range = c(3, 12)) + geom_text(aes(label = Survey), vjust=2, hjust=1.5) + theme(legend.position = "none")
+ggplot(Warden.spr.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.3, 0.3) + ylim(-0.25, 0.3) + coord_fixed(ratio = 1) + geom_point(aes(size = depth, colour= depth)) + scale_size(range = c(3, 12)) + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none")
 ```
