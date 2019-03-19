@@ -304,7 +304,7 @@ Warden.spr.m <- melt(Warden.spr)
 Warden.spr.m <- dcast(Warden.spr.m, Survey ~ CommonName, fill="0")
 rownames(Warden.spr.m) <- Warden.spr.m[,1]
 Warden.spr.m[,1] <- NULL
-write.csv(Warden.spr.m, "Warden.spr_m.csv")
+write.csv(Warden.spr.m, "./analysis_data/Warden.spr_m.csv")
 Warden.spr.m <- read.csv("Warden.spr_m.csv", row.names=1)
 ```
 
@@ -326,18 +326,36 @@ Warden.spr.MDS.pts$Survey <- row.names(Warden.spr.MDS.pts)
 ```{r-load-depths-split-byseaosn}
 av.depths <- read.csv("./raw_data/average depths.csv") #load data file with average depths (per survey) for gauged Warden wetlands
 av.depths.spr <- av.depths[av.depths$Season == "Spring", ] #restrict to spring
+row.names(av.depths.spr) <- row.names(Warden.spr.m)
+av.depths.spr <- av.depths.spr[, c(3,4)]
+write.csv(av.depths.spr, "./analysis_data/av.depths.spr.csv")
 av.depths.sum <- av.depths[av.depths$Season == "Summer", ] #restrict to summer
-Warden.spr.MDS.pts$depth <- as.numeric(av.depths.spr$depth)^3+30 #create new field for depth in the file with mds coordinates
-Warden.sum.MDS.pts$depth <- as.numeric(av.depths.sum$depth)^3+30 #create new field for depth in the file with mds coordinates
+row.names(av.depths.sum) <- row.names(Warden.sum.m)
+av.depths.sum <- av.depths.sum[, c(3,4)]
+write.csv(av.depths.sum, "./analysis_data/av.depths.sum.csv")
 ```
 
 Ordination graph of Warden system waterbird communities by survey with surveys undertaken in summer scaled and coloured by average depth of gauged wetlands  
 ```{r summer-Warden-ord-plot-bydepths, include=TRUE}
-ggplot(Warden.sum.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.3, 0.5) + ylim(-0.35, 0.3) + coord_fixed(ratio = 1) + geom_point(aes(size = depth, colour=depth)) + scale_size(range = c(3, 12)) + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none")
+ggplot(Warden.sum.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.3, 0.5) + ylim(-0.35, 0.3) + coord_fixed(ratio = 1) + geom_point(aes(size = av.depths.sum$depth, colour=av.depths.sum$depth)) + scale_size(range = c(3, 12)) + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none")
 ```
 
 Ordination graph of Warden system waterbird communities by survey with surveys undertaken in spring scaled and coloured by average depth of gauged wetlands  
 ```{r spring-Warden-ord-plot-bydepths, include=TRUE}
 # note need to restrict both data matrix and average depths to just summer surveys
-ggplot(Warden.spr.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.3, 0.3) + ylim(-0.25, 0.3) + coord_fixed(ratio = 1) + geom_point(aes(size = depth, colour= depth)) + scale_size(range = c(3, 12)) + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none")
+ggplot(Warden.spr.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.3, 0.3) + ylim(-0.25, 0.3) + coord_fixed(ratio = 1) + geom_point(aes(size = av.depths.spr$depth, colour=av.depths.spr$depth)) + scale_size(range = c(3, 12)) + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none")
 ```
+
+Bio-env analysis to determine influence of depth on waterbrd communities on the Warden wetlands
+```{r bio-env-Warden}
+Warden.be <- bioenv(Warden.spr.m, av.depths.spr, method = "spearman", index = "bray")
+Warden.be
+```
+
+```{r}
+corr(av.depths.spr$depth)
+```
+
+
+
+
