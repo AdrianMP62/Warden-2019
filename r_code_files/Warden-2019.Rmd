@@ -277,35 +277,37 @@ Warden <- Warden[-grep("Unidentified", Warden$CommonName), ] #remove rows where 
 Warden <- Warden[Warden$System=="Warden", ] #cut down to just Warden wetlands
 Warden <- Warden[-grep("Grassbird", Warden$CommonName), ] #remove records of little grassbird
   Warden <- Warden[!(Warden$Date == "23/02/2010" & Warden$SiteCode == "WRP004"), ] #remove duplicate data for Mullet Feb 2010
-Warden$Count <- sqrt(Warden$Count) #square root data
   Warden$Date <- as.Date(Warden$Date, format="%d/%m/%Y")
   Warden$Survey <- Warden$Date #create Survey field from Date
   Warden$Survey <- format(as.Date(Warden$Survey), "%b-%Y") #change format to mmm-YYYY
-  Warden$Survey <- gsub("Oct-2018", "Nov-2018", Warden$Survey) #lump survey dates that straddle Oct/Nov 2018
-  yq <- as.yearqtr(as.yearmon(Warden$Date, "%Y/%m/%d"))
+  Warden$Survey <- gsub("Oct-2018", "Nov-2018", Warden$Survey) #lump survey dates that straddle Oct/Nov 2018 and call them Nov-2018
+  yq <- as.yearqtr(as.yearmon(Warden$Date, "%Y/%m/%d")) #create a temporary season field
 Warden$Season <- factor(format(yq, "%q"), levels = 1:4, labels = c("summer", "autumn", "winter", "spring")) #create Season (spring vs summer) variable
   Warden.sum <- Warden[Warden$Season == "summer", ] #summer only data
   Warden.spr <- Warden[Warden$Season == "spring", ] #spring only data
 ```
 
 ```{r aggregate_count_data_by_Common_name_for_each_season}
-Warden.sum <- aggregate(data=Warden.sum, Count ~ CommonName + Survey, FUN="sum") #aggregate count data by species and survey
-Warden.spr <- aggregate(data=Warden.spr, Count ~ CommonName + Survey, FUN="sum") #aggregate count data by species and survey
+Warden.sum.agg <- aggregate(data=Warden.sum, Count ~ CommonName + Survey, FUN="sum") #aggregate count data by species and survey
+Warden.sum.agg$Count <- sqrt(Warden.sum.agg$Count)
+Warden.spr.agg<- aggregate(data=Warden.spr, Count ~ CommonName + Survey, FUN="sum") #aggregate count data by species and survey
+Warden.spr.agg$Count <- sqrt(Warden.spr.agg$Count)
 ```
 
 ```{r convert-Warden-only-data-to-seasonal-matrices}
-Warden.sum.m <- melt(Warden.sum)
+Warden.sum.m <- melt(Warden.sum.agg)
 Warden.sum.m <- dcast(Warden.sum.m, Survey ~ CommonName, fill="0")
 rownames(Warden.sum.m) <- Warden.sum.m[,1]
 Warden.sum.m[,1] <- NULL
 write.csv(Warden.sum.m, "Warden_sum_m.csv")
 Warden.sum.m <- read.csv("Warden_sum_m.csv", row.names=1)
-Warden.spr.m <- melt(Warden.spr)
+
+Warden.spr.m <- melt(Warden.spr.agg)
 Warden.spr.m <- dcast(Warden.spr.m, Survey ~ CommonName, fill="0")
 rownames(Warden.spr.m) <- Warden.spr.m[,1]
 Warden.spr.m[,1] <- NULL
-write.csv(Warden.spr.m, "./analysis_data/Warden.spr_m.csv")
-Warden.spr.m <- read.csv("Warden.spr_m.csv", row.names=1)
+write.csv(Warden.spr.m, "./analysis_data/Warden_spr_m.csv")
+Warden.spr.m <- read.csv("./analysis_data/Warden_spr_m.csv", row.names=1)
 ```
 
 MDS unconstrained ordination using metaMDS in package vegan to analyse effects of season within the Warden system
@@ -328,10 +330,13 @@ av.depths <- read.csv("./raw_data/average depths.csv") #load data file with aver
 av.depths.spr <- av.depths[av.depths$Season == "Spring", ] #restrict to spring
 row.names(av.depths.spr) <- row.names(Warden.spr.m)
 av.depths.spr <- av.depths.spr[, c(3,4)]
+av.depths.spr$depthRS <- c(0,0,0,0,0,0,0,0,0,0)
 write.csv(av.depths.spr, "./analysis_data/av.depths.spr.csv")
+
 av.depths.sum <- av.depths[av.depths$Season == "Summer", ] #restrict to summer
 row.names(av.depths.sum) <- row.names(Warden.sum.m)
 av.depths.sum <- av.depths.sum[, c(3,4)]
+av.depths.sum$depthRS <- c(0,0,0,0,0,0,0,0)
 write.csv(av.depths.sum, "./analysis_data/av.depths.sum.csv")
 ```
 
@@ -348,14 +353,9 @@ ggplot(Warden.spr.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.3, 0.3) + ylim(-0.25, 
 
 Bio-env analysis to determine influence of depth on waterbrd communities on the Warden wetlands
 ```{r bio-env-Warden}
-Warden.be <- bioenv(Warden.spr.m, av.depths.spr, method = "spearman", index = "bray")
-Warden.be
+Warden.spr.be <- bioenv(Warden.spr.m, av.depths.spr, method = "spearman", index = "bray")
+Warden.spr.be
+
+Warden.sum.be <- bioenv(Warden.sum.m, av.depths.sum, method = "spearman", index = "bray")
+Warden.sum.be
 ```
-
-```{r}
-corr(av.depths.spr$depth)
-```
-
-
-
-
