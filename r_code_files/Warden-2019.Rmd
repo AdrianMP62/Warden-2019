@@ -240,7 +240,6 @@ ggplot(WG.3dMDS.bySyst.pts, aes(MDS1, MDS2)) + xlim(-0.5, 0.4) + ylim(-0.3, 0.3)
 ggplot(WG.3dMDS.bySyst.pts, aes(x=MDS1, y=MDS2, shape=SystSeas, colour=SystSeas)) + xlim(-0.5, 0.4) + ylim(-0.3, 0.3) + coord_fixed(ratio = 1) + geom_point(size=5) + scale_color_manual(values=c("blue","blue","red","red")) + scale_shape_manual(values=c(0,15,2,17)) + theme(legend.title = element_blank()) + theme(legend.position = "top") + theme(legend.text=element_text(size=12)) + theme(plot.margin=unit(c(5,5,5,0),"mm")) + geom_text_repel(aes(label=Survey), colour="grey", size=5, vjust=1, hjust=1.5)
 ```
 
-
 ```{r simper-analysis-of-species-separating-the-two-systems}
   WG.bySyst.Sim <- simper(WG.bySystem.m, WG.3dMDS.bySyst.pts$System) #Simper analysis to determine which species best correlated with differences between seasons of whole dataset
 ```
@@ -263,6 +262,7 @@ agg.spec.data.2 <- aggregate(data=WG.bySystem, Count2 ~ CommonName + Survey + Sy
 agg.spec.data.2 <- agg.spec.data.2[agg.spec.data.2$CommonName %in% WG.bySyst.Sim.ext, ] #restrict aggregated counts to just those top 8 species from simper
 rownames(agg.spec.data.2) <- NULL
 agg.spec.data.2$CommonName <- as.character(agg.spec.data.2$CommonName)
+colnames(agg.spec.data.2)[5] <- "Abundance"
 write.csv(agg.spec.data.2, "agg.spec.data.2.csv")
 agg.spec.data.2 <- read.csv("agg.spec.data.2.csv")
 ```
@@ -270,7 +270,7 @@ agg.spec.data.2 <- read.csv("agg.spec.data.2.csv")
 A simper analysis was undertaken to determine which species were most responsible for the separation of Warden and Gore wetland systems. For the top eight species, box plots of abundance on the Warden versus Gore systems are provided below.  
 
 ```{r boxplots-simper-top8spp, include=TRUE}
-qplot(x=System, y=Count2, data=agg.spec.data.2, geom="boxplot") + facet_wrap(~ CommonName, scales="free_y", ncol=2) #produce facet wrapped box plots showing differences in top 8 simper species by wetland system
+qplot(x=System, y=Abundance, data=agg.spec.data.2, geom="boxplot") + facet_wrap(~ CommonName, scales="free_y", ncol=2) + theme(axis.title.y = element_text(hjust=0.5)) #produce facet wrapped box plots showing differences in top 8 simper species by wetland system
 ```
 
 ##WARDEN SYSTEM ANALYSIS ONLY  
