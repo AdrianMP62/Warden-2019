@@ -364,10 +364,10 @@ ggplot(Warden.spr.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.3, 0.3) + ylim(-0.2, 0
 
 Bio-env analysis to determine influence of depth on waterbrd communities on the Warden wetlands
 ```{r bio-env-Warden}
-D.spr.df <- as.data.frame(D.spr, row.names = row.names(Warden.spr.m))
+D.spr.df <- as.data.frame(D.spr, row.names = row.names(Warden.spr.m)) #extract depths
 Warden.spr.be <- bioenv(Warden.spr.m, D.spr.df, method = "spearman", index = "bray")
 Warden.spr.be
-D.sum.df <- as.data.frame(D.sum, row.names = row.names(Warden.sum.m))
+D.sum.df <- as.data.frame(D.sum, row.names = row.names(Warden.sum.m)) #extract depths
 Warden.sum.be <- bioenv(Warden.sum.m, D.sum.df, method = "spearman", index = "bray")
 Warden.sum.be
 ```
