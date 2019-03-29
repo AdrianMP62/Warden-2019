@@ -1,0 +1,411 @@
+---
+title: "Warden and Gore waterbird analyses"
+author: "Adrian Pinder"
+date and time: '`r Sys.time()`'
+output: html_document
+software: 'RStudio: Version 1.1.463 – © 2009-2018 RStudio, Inc. R version: `r getRversion()`'
+editor_options: 
+  chunk_output_type: console
+---
+  
+Git repository https://github.com/AdrianMP62/Warden-2019  
+
+RStudio: Version 1.1.463 – © 2009-2018 RStudio, Inc. R version: `r getRversion()`  
+Date and time: `r Sys.time()`
+
+Uses the following datafiles:  
+*  Warden_Gore_by_suite_06_19.csv (System,	SurveyType,	SiteName,	SiteCode,	Subsite	Date,	CommonName,	SpeciesCode,	Count) (e.g. Warden,	aerial,	Neridup Suite,	WRP001,	combined,	11/10/2006,	Great Egret,	greg,	1)
+*  Average depths.csv (average depths of Warden wetlands for each survey period).
+*  Taxonomy (CommonName, Order and informal group name in consecutive columns. CommonNames match those in rden_Gore_by_suite_06_19.csv)
+
+Date and time: `r Sys.time()`
+
+```{r setup, echo=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(include = FALSE)
+knitr::opts_knit$set(root.dir = '../') 
+```
+
+```{r}
+options(scipen=999)
+```
+
+```{r load-packages, results="hide", warning=FALSE, message=FALSE}
+Packages <- c("vegan", "ggrepel", "ggplot2", "stringr", "xlsx", "gsubfn", "reshape2", "knitr", "simba", "zoo", "car")
+lapply(Packages, library, character.only = TRUE)
+#source("./functions/bio_env_ext.R") #The Bio_env and bv_step_ext routines below comes from http://menugget.blogspot.com.au/2011/06/clarke-and-ainsworths-bioenv-and-bvstep.html
+```
+
+```{r set-seed}
+set.seed(1234)
+```
+
+
+#Analyses of waterbird data from the Warden and Gore Ramsar wetlands 2006 to 2019
+  
+The following is the output from an Rmarkdown R script for analyses of waterbird communities of the Warden and Gore wetland systems surveyed between Oct 2006 and Feb 2019.  
+  
+These analyses are based primarily on ground counts. Aerial counts are only for a few Warden system wetlands in 2006 to 2009 where ground counts were not undertaken. These include Neridup and Bandy Creek (Oct 2006-Nov 2008), Ewans (Oct 2006) and Ewans and Mullet combined (Nov 2008 - have to ignore Nov 2008 Mullet ground counts), North Wheatfield (Oct 2006, Oct 2007, Nov 2008). Note that the Nov 2008 aerial data was collected two weeks prior to the ground counts.  Gore data is included only for November 2009 onwards when ground counts are available. Pink Lake is excluded from analyses because it wasnt consistently surveyed. Birds counted only while in air and not allocated to any particular wetland are given the site code 'In flight'. These conditions apply to all following analyses.  
+  
+##Multi-variate analysis of Warden and Gore combined waterbird data by season  
+
+This ordination shows that, by and large, with data from systems (Warden and Gore) combined, there is a difference between waterbird communities present in spring and those present in late summer.
+
+```{r import-and-restructure-Warden-and-Gore-waterbird-data}
+input.data <- read.csv("./raw_data/Warden_Gore_by_suite_06_19.csv")
+ WG.bySeason <- input.data
+  WG.bySeason <- WG.bySeason[-grep("Unidentified", WG.bySeason$CommonName), ] #remove rows where birds not identified
+  WG.bySeason <- WG.bySeason[-grep("Grassbird", WG.bySeason$CommonName), ] #remove records of little grassbird
+  WG.bySeason <- WG.bySeason[!(WG.bySeason$Date == "23/02/2010" & WG.bySeason$SiteCode == "WRP004"), ] #remove duplicate data for Mullet Feb 2010
+  WG.bySeason$Date <- as.Date(WG.bySeason$Date, format="%d/%m/%Y")
+  WG.bySeason$Survey <- WG.bySeason$Date #create Survey field from Date
+  WG.bySeason$Survey <- format(as.Date(WG.bySeason$Survey), "%b-%Y") #change format to mmm-YYYY
+  WG.bySeason$Survey <- gsub("Oct-2018", "Nov-2018", WG.bySeason$Survey) #lump survey dates that straddle Oct/Nov 2018
+  yq <- as.yearqtr(as.yearmon(WG.bySeason$Date, "%Y/%m/%d"))
+WG.bySeason$Season <- factor(format(yq, "%q"), levels = 1:4, labels = c("summer", "autumn", "winter", "spring")) #create Season (spring vs summer) variable
+write.csv(WG.bySeason, "./analysis_data/WG.bySeason.csv")
+```
+
+```{r aggregare-by-survey-and-species}
+  WG.bySeason.agg <- aggregate(data=WG.bySeason, Count ~ CommonName + Survey + Season, FUN="sum") #sum data by common name and survey period
+  WG.bySeason.agg$Count <- sqrt(WG.bySeason.agg$Count) #convert counts to square root
+```
+
+```{r create-matrix-for-ordination}
+  WG.bySeason.agg <- melt(WG.bySeason.agg) #melt data 
+  WG.bySeason.m <- dcast(WG.bySeason.agg, Survey ~ CommonName, fill="0") #create matrix from flat-file
+  rownames(WG.bySeason.m) <- WG.bySeason.m [,1] #use first column (season) as row.names
+  WG.bySeason.m [,1] <- NULL #remove season column
+  WG.bySeason.m <- data.matrix(WG.bySeason.m, rownames.force = NA) #convert data to numeric format (required for metaMDS)
+```
+
+```{r undertake-2D-and-3D_ordination}
+WG.MDS.bySeas <- metaMDS(WG.bySeason.m, distance = "bray")
+WG.3dMDS.bySeas <- metaMDS(WG.bySeason.m, distance = "bray", k=3)
+```
+
+```{r extract-list-of-seasons-for-ordination-plots}
+surv.seas<- unique(WG.bySeason[c("Survey", "Season")]) #extract a unique list of survey codes (mmm-yy) and season so can later allocate a season to each survey in the MDS output
+surv.seas <- surv.seas[order(surv.seas$Survey), ] #reorder alphabetically by Survey (Dec-2011 to Oct-2012)
+```
+  
+```{r create-2D-dataset-for-plotting}
+  WG.MDS.bySeas.pts <- as.data.frame(WG.MDS.bySeas$points) #extract 2D ordination coordinates (points)
+  WG.MDS.bySeas.pts$Survey <- row.names(WG.MDS.bySeas.pts) #use survey period as row.names
+  WG.MDS.bySeas.pts$Season <- surv.seas[match(WG.MDS.bySeas.pts$Survey, surv.seas$Survey), 2] #adds 'season' (spring versus summer) (from column '2' of Surv.Seas) to ordination points by matching survey between points and surv.seas
+```
+
+```{r create-3D-dataset-for-plotting}
+  WG.3dMDS.bySeas.pts <- as.data.frame(WG.3dMDS.bySeas$points) #extract 3D ordination coordinates (points)
+  WG.3dMDS.bySeas.pts$Survey <- row.names(WG.3dMDS.bySeas.pts) #use survey period as row.names
+  WG.3dMDS.bySeas.pts$Season <- surv.seas[match(WG.3dMDS.bySeas.pts$Survey, surv.seas$Survey), 2] #adds 'season' (spring versus summer) (from column '2' of Surv.Seas) to ordination points by matching survey between points and surv.seas
+```
+ 
+2D ordination plot of Warden and Gore data combined by season, stress = `r WG.MDS.bySeas$stress`.
+```{r, 2D-ordination-plot-by-season, include=TRUE}
+ggplot(WG.MDS.bySeas.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.4, 0.35) + ylim(-0.3, 0.2) + geom_point(aes(colour=Season), size=5) + coord_fixed(ratio = 1) + geom_text(aes(label=Survey), size=3, vjust=1, hjust=1.3)
+```
+
+3D ordination plot of Warden and Gore data combined by season, stress = `r WG.MDS.bySeas$stress`.
+```{r, 3D-ordination-plot-by-season, include=TRUE}
+ggplot(WG.3dMDS.bySeas.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.4, 0.35) + ylim(-0.3, 0.3) + geom_point(aes(colour=Season, shape=System), size=5) + coord_fixed(ratio = 1) + geom_text(aes(label=Survey), size=3, vjust=1, hjust=1.3) + theme (plot.margin=unit(c(0,0,0,5),"mm"))
+```
+
+```{r run-simper-analysis-to-determine-influence-of-species-by-season}
+  WG.bySeas.Simper <- simper(WG.bySeason.m, surv.seas$Season) #Simper analysis to determine which species best correlated with differences between seasons of whole dataset
+```
+
+```{r extract-top-8-spp-from-simper-to-contrast-seasons}
+  WG.Simper.ext <- WG.bySeas.Simper$spring_summer #extract results from Simper analysis
+  WG.Sim.Average <- as.data.frame(WG.Simper.ext$average) #extract the average difference data
+  WG.Sim.Spec <- as.data.frame(WG.Simper.ext$species) #extract species names
+  WG.bySeas.Simper2 <- cbind(WG.Sim.Spec, WG.Sim.Average) #combine species with averages
+  WG.bySeas.Simper2 <- WG.bySeas.Simper2[ order(-WG.bySeas.Simper2[, 2]), ] #order species and averages by average
+colnames(WG.bySeas.Simper2) = c("Species", "cont") #add new column names
+  WG.bySeas.Simper2 <- as.vector(WG.bySeas.Simper2[1:8, 1]) #extracts 
+```
+
+```{r aggregate-by-sppname-and-survey-for season-simper}
+  agg.spec.data <- aggregate(data=WG.bySeason, Count ~ CommonName + Season + Survey, FUN="sum") #aggregate counts by common name, season and survey
+  #agg.spec.data <- as.data.frame(sapply(agg.spec.data, gsub, pattern = "-", replacement = " ")) #replace dashes with spaces
+```
+
+```{r extract-counts-of-top-8-species-from-simper-for-contrasting-system}
+  agg.spec.data.8 <- agg.spec.data[agg.spec.data$CommonName %in% WG.bySeas.Simper2, ]
+  rownames(agg.spec.data.8) <- NULL #reset row names
+  agg.spec.data.8 <- as.data.frame(agg.spec.data.8[, -3]) #remove Survey field
+  agg.spec.data.8$CommonName <- as.character(agg.spec.data.8$CommonName)
+```
+
+```{r write-then-read-top-8-species-data-to-convert-to-numeric-for-analysis-by-season}
+  write.csv(agg.spec.data.8, "agg.spec.data.8.csv")
+  agg.spec.data.8 <- read.csv("agg.spec.data.8.csv")
+```
+
+These box plots show the abundance of the top 8 species contributiong to waterbird communities being different in spring and summer (Gore and Warden systems combined).  
+```{r simper-by-season-box-plots, include=TRUE}
+  qplot(x=Season, y=Count, data=agg.spec.data.8, geom="boxplot") + facet_wrap(~ CommonName, scales="free_y", ncol=2)
+```
+
+
+##ORDINATION OF GORE SYSTEM VERSUS WARDEN SYSTEM  
+
+The ordination plot below shows that the Warden and Gore wetland systems consistently support different waterbird communities, i.e. for waterbirds they have different conservation values. It can also be seen that there is greater seasonal differences in the Warden system than in the Gore system (i.e. greater overlap between positions of the summer and spring surveys amongst the Gore surveys).  
+
+the Nov 2018 and Feb 2019 surveys are within the range of community compositions surveyed since 2006 for both systems, despite the very high counts in Feb 2019 and low Warden count in Nov 2018.
+
+```{r import-reduce-aggregate-data}
+ input.data2 <- read.csv("./raw_data/Warden_Gore_by_suite_06_19.csv")
+  WG.bySystem <- input.data2
+    WG.bySystem <- WG.bySystem[-grep("Unidentified", WG.bySystem$CommonName), ] #remove rows where birds not identified
+  WG.bySystem <- WG.bySystem[-grep("Grassbird", WG.bySystem$CommonName), ] #remove records of little grassbird
+  WG.bySystem <- WG.bySystem[!(WG.bySystem$Date == "23/02/2010" & WG.bySystem$SiteCode == "WRP004"), ] #remove duplicate data for Mullet Feb 2010
+  WG.bySystem$Date <- as.Date(WG.bySystem$Date, format="%d/%m/%Y")
+  WG.bySystem$Survey <- WG.bySystem$Date #create Survey field from Date
+  WG.bySystem$Survey <- format(as.Date(WG.bySystem$Survey), "%b-%Y") #change format to mmm-YYYY
+  WG.bySystem$Survey <- gsub("Oct-2018", "Nov-2018", WG.bySystem$Survey) #lump survey dates that straddle Oct/Nov 2018
+  yq <- as.yearqtr(as.yearmon(WG.bySystem$Date, "%Y/%m/%d"))
+WG.bySystem$Season <- factor(format(yq, "%q"), levels = 1:4, labels = c("summer", "autumn", "winter", "spring")) #create Season (spring vs summer) variable
+  WG.bySystem$Count <- sqrt(WG.bySystem$Count)
+  WG.bySystem$Sys_Sur <- paste(WG.bySystem$System, WG.bySystem$Survey, sep = " ") # combine System and date to create one 'sample' variable for mds - i.e. combine system with season
+write.csv(WG.bySystem, "./WG.bySystem.csv")
+```
+
+```{r aggregate-by-Common-Name}
+WG.bySystem.agg <- aggregate(data=WG.bySystem, Count ~ CommonName + Sys_Sur, FUN="sum")
+WG.bySystem.agg$Count <- sqrt(as.numeric(WG.bySystem.agg$Count))
+```
+
+```{r create_matrix_for_ordaniation}
+  WG.bySystem.agg <- melt(WG.bySystem.agg) #melt data
+  WG.bySystem.m <- dcast(WG.bySystem.agg, Sys_Sur ~ CommonName, fill="0") #recast as matrix
+rownames(WG.bySystem.m) <- WG.bySystem.m[,1]
+  WG.bySystem.m[,1] <- NULL
+  WG.bySystem.m <- data.matrix(WG.bySystem.m, rownames.force = NA) #convert data to numeric format (required for metaMDS)
+```
+
+MDS unconstrained ordination using metaMDS in package vegan to compare Warden and Gore wetland systems
+```{r ordination-by-system}
+WG.MDS.bySyst <- metaMDS(WG.bySystem.m, distance = "bray")
+```
+
+```{r extract-coordinates-from-nMDS-and-add-season-to-resulting-data.frame-for-Warden-versus-Gore-analysis}
+system <- unique(input.data2$System) #extract a unique list of systems (Gore, Warden)
+WG.MDS.bySyst.pts <- as.data.frame(WG.MDS.bySyst$points) #extract coordinates from metaMDS
+WG.MDS.bySyst.pts$Sys_Sur <- row.names(WG.MDS.bySyst.pts) #use row.names to create new System+Survey period variable
+WG.MDS.bySyst.pts$Survey <- str_sub(WG.MDS.bySyst.pts$Sys_Sur, -8, -1) #extract Survey period from Sys-Sur variable by extracting last 8 characters
+WG.MDS.bySyst.pts$System <- substr(WG.MDS.bySyst.pts$Sys_Sur, 1, 4) #extract System from Sur-sys variable by extracting first 4 variables
+WG.MDS.bySyst.pts$System <- gsub("Ward", "Warden", WG.MDS.bySyst.pts$System) #convert 'Ward' to 'Warden'
+#WG.MDS.bySyst.pts <- WG.MDS.bySyst.pts[with(WG.MDS.bySyst.pts, order(Survey)), ] #order by survey
+WG.MDS.bySyst.pts$Season <-  substr(WG.MDS.bySyst.pts$Survey, 1, 3) #extract months
+WG.MDS.bySyst.pts$Season <- recode(WG.MDS.bySyst.pts$Season, "'Feb'='summer';c('Dec','Oct','Nov')='spring'") #convert months to season
+WG.MDS.bySyst.pts$SystSeas <- paste(WG.MDS.bySyst.pts$System, WG.MDS.bySyst.pts$Season, sep=" in ")
+str(WG.MDS.bySyst.pts) #join System and season
+```
+
+ordination plot with symbols coloured by system (Warden versus Gore), `r WG.MDS.bySyst$stress`
+```{r plot-2D-ordination-by-system, include=TRUE}
+ggplot(WG.MDS.bySyst.pts, aes(x=MDS1, y=MDS2, shape=SystSeas, colour=SystSeas)) + xlim(-0.45, 0.3) + ylim(-0.3, 0.25) + coord_fixed(ratio = 1) + geom_point(size=5) + scale_color_manual(values=c("blue","blue","red","red")) + scale_shape_manual(values=c(0,15,2,17)) + geom_text(aes(label=Survey), colour="black", size=3, vjust=1, hjust=1.3)
+```
+
+However, the stress level of the above two-dimensional ordintion is unacceptably high at `r WG.MDS.bySyst$stress`. A three-dimensional ordination was therefore undertaken.
+
+3D MDS unconstrained ordination using metaMDS in package vegan to compare Warden and Gore wetland systems
+```{r 3Dordination-by-system}
+WG.3dMDS.bySyst <- metaMDS(WG.bySystem.m, distance = "bray", k=3)
+plot(WG.3dMDS.bySyst, xlim=c(-1,1), display = c("sites", "species"), type="t")
+```
+
+```{r extract-coordinates-from-3D-nMDS-and-add-season-to-resulting-data.frame-for Warden-versus-Gore-analysis}
+system <- unique(input.data2$System) #extract a unique list of systems (Gore, Warden)
+WG.3dMDS.bySyst.pts <- as.data.frame(WG.3dMDS.bySyst$points) #extract coordinates from metaMDS
+WG.3dMDS.bySyst.pts$Sys_Sur <- row.names(WG.3dMDS.bySyst.pts) #use row.names to create new System+Survey period variable
+WG.3dMDS.bySyst.pts$Survey <- str_sub(WG.3dMDS.bySyst.pts$Sys_Sur, -8, -1) #extract Survey period from Sys-Sur variable by extracting last 8 characters
+WG.3dMDS.bySyst.pts$System <- substr(WG.3dMDS.bySyst.pts$Sys_Sur, 1, 4) #extract System from Sur-sys variable by extracting first 4 variables
+WG.3dMDS.bySyst.pts$System <- gsub("Ward", "Warden", WG.3dMDS.bySyst.pts$System) #convert 'Ward' to 'Warden'
+#WG.3dMDS.bySyst.pts <- WG.3dMDS.bySyst.pts[with(WG.3dMDS.bySyst.pts, order(Survey)), ] #order by survey
+WG.3dMDS.bySyst.pts$Season <-  substr(WG.3dMDS.bySyst.pts$Survey, 1, 3) #extract months
+WG.3dMDS.bySyst.pts$Season <- recode(WG.3dMDS.bySyst.pts$Season, "'Feb'='summer';c('Dec','Oct','Nov')='spring'") #convert months to season
+WG.3dMDS.bySyst.pts$SystSeas <- paste(WG.3dMDS.bySyst.pts$System, WG.3dMDS.bySyst.pts$Season, sep=" in ")
+str(WG.3dMDS.bySyst.pts) #join System and season
+```
+
+```{r plot-3D-ordination-by-system, include=TRUE}
+ggplot(WG.3dMDS.bySyst.pts, aes(x=MDS1, y=MDS2, shape=SystSeas, colour=SystSeas)) + xlim(-0.5, 0.4) + ylim(-0.3, 0.3) + coord_fixed(ratio = 1) + geom_point(size=5) + scale_color_manual(values=c("blue","blue","red","red")) + scale_shape_manual(values=c(0,15,2,17)) + theme(legend.title = element_blank()) + theme(legend.position = "top") + theme(legend.text=element_text(size=12)) + theme(plot.margin=unit(c(0,0,0,0),"mm")) + geom_text_repel(aes(label=Survey), colour="grey", size=5, vjust=1, hjust=1.5)
+```
+
+```{r simper-analysis-of-species-separating-the-two-systems}
+  WG.bySyst.Sim <- simper(WG.bySystem.m, WG.3dMDS.bySyst.pts$System) #Simper analysis to determine which species best correlated with differences between seasons of whole dataset
+summary(WG.bySyst.Sim, ordered=TRUE)
+```
+
+```{r extract-simperdata-for-top10pp}
+  WG.bySyst.Sim.ext <- WG.bySyst.Sim$Gore_Warden #extract name and contribution data from simper analysis
+  WG.bySyst.Sim.average <- as.data.frame(WG.bySyst.Sim.ext$average)#extract average contribution values
+  WG.bySyst.Sim.spec <- as.data.frame(WG.bySyst.Sim.ext$species)#extract species names
+  WG.bySyst.Sim.ext <- cbind(WG.bySyst.Sim.spec, WG.bySyst.Sim.average) #combine average with species name
+  WG.bySyst.Sim.ext <- WG.bySyst.Sim.ext[ order(-WG.bySyst.Sim.ext[,2]), ] #order by average value
+colnames(WG.bySyst.Sim.ext) = c("Species", "cont") #add new column names
+  WG.bySyst.Sim.ext <- as.vector(WG.bySyst.Sim.ext[1:10, 1]) #extract top eight species: first 8 rows
+  #WG.bySyst.Sim.ext <- gsub("\\.", " ", WG.bySyst.Sim.ext)
+```
+
+```{r restrict-countdata-to-simper-top10spp}
+WG.bySystem$Count2 <- WG.bySystem$Count^2
+agg.spec.data.2 <- aggregate(data=WG.bySystem, Count2 ~ CommonName + Survey + System, FUN="sum") #aggregare count data by system and survey
+#agg.spec.data.2 <- as.data.frame(sapply(agg.spec.data.2, gsub, pattern = "-", replacement = " ")) #replace dashes in species names with spaces to match simper output
+agg.spec.data.2 <- agg.spec.data.2[agg.spec.data.2$CommonName %in% WG.bySyst.Sim.ext, ] #restrict aggregated counts to just those top 8 species from simper
+rownames(agg.spec.data.2) <- NULL
+agg.spec.data.2$CommonName <- as.character(agg.spec.data.2$CommonName)
+colnames(agg.spec.data.2)[4] <- "Abundance"
+write.csv(agg.spec.data.2, "agg.spec.data.2.csv")
+agg.spec.data.2 <- read.csv("agg.spec.data.2.csv")
+```
+
+A simper analysis was undertaken to determine which species were most responsible for the separation of Warden and Gore wetland systems. For the top ten species, box plots of abundance on the Warden versus Gore systems are provided below.  
+
+```{r boxplots-simper-top10spp, include=TRUE}
+qplot(x=System, y=Abundance, data=agg.spec.data.2, geom="boxplot") + facet_wrap(~ CommonName, scales="free_y", ncol=2) + theme(axis.title.y = element_text(hjust=0.5)) #produce facet wrapped box plots showing differences in top 10 simper species by wetland system
+```
+
+undertake Mann-Whitney for each of the 10 top Simper species and combine results into file called ttest.results<p/>
+```{r}
+WG.bySyst.Sim.ext <- WG.bySyst.Sim.ext[-8]
+WG.bySyst.Sim.ext
+ttest.v <- vector()
+for (i in 1:9) {
+tt.data <- subset(agg.spec.data.2, CommonName == WG.bySyst.Sim.ext[i])
+print(ttest <- wilcox.test(log10(Abundance) ~ System, data = tt.data))
+ttest.v <- c(ttest.v, ttest$p.value)
+}
+ttest.v
+ttest.results <- data.frame(CommonName=WG.bySyst.Sim.ext, p.value=ttest.v)
+ttest.results
+```
+
+
+##WARDEN SYSTEM ANALYSIS ONLY  
+
+```{r input_data_and_prepare_for_just_Warden_ordinations}
+input.data3 <- read.csv("./raw_data/Warden_Gore_by_suite_06_19.csv")
+Warden <- input.data3
+Warden <- Warden[-grep("Unidentified", Warden$CommonName), ] #remove rows where birds not identified
+Warden <- Warden[Warden$System=="Warden", ] #cut down to just Warden wetlands
+Warden <- Warden[-grep("Grassbird", Warden$CommonName), ] #remove records of little grassbird
+  Warden <- Warden[!(Warden$Date == "23/02/2010" & Warden$SiteCode == "WRP004"), ] #remove duplicate data for Mullet Feb 2010
+  Warden$Date <- as.Date(Warden$Date, format="%d/%m/%Y")
+  Warden$Survey <- Warden$Date #create Survey field from Date
+  Warden$Survey <- format(as.Date(Warden$Survey), "%b-%Y") #change format to mmm-YYYY
+  Warden$Survey <- gsub("Oct-2018", "Nov-2018", Warden$Survey) #lump survey dates that straddle Oct/Nov 2018 and call them Nov-2018
+  yq <- as.yearqtr(as.yearmon(Warden$Date, "%Y/%m/%d")) #create a temporary season field
+Warden$Season <- factor(format(yq, "%q"), levels = 1:4, labels = c("summer", "autumn", "winter", "spring")) #create Season (spring vs summer) variable
+  Warden.sum <- Warden[Warden$Season == "summer", ] #summer only data
+  Warden.spr <- Warden[Warden$Season == "spring", ] #spring only data
+```
+
+```{r aggregate_count_data_by_Common_name_for_each_season}
+Warden.sum.agg <- aggregate(data=Warden.sum, Count ~ CommonName + Survey, FUN="sum") #aggregate count data by species and survey
+Warden.sum.agg$Count <- sqrt(Warden.sum.agg$Count)
+Warden.spr.agg<- aggregate(data=Warden.spr, Count ~ CommonName + Survey, FUN="sum") #aggregate count data by species and survey
+Warden.spr.agg$Count <- sqrt(Warden.spr.agg$Count)
+```
+
+```{r convert-Warden-only-data-to-seasonal-matrices}
+Warden.sum.m <- melt(Warden.sum.agg)
+Warden.sum.m <- dcast(Warden.sum.m, Survey ~ CommonName, fill="0")
+rownames(Warden.sum.m) <- Warden.sum.m[,1]
+Warden.sum.m[,1] <- NULL
+write.csv(Warden.sum.m, "Warden_sum_m.csv")
+Warden.sum.m <- read.csv("Warden_sum_m.csv", row.names=1)
+
+Warden.spr.m <- melt(Warden.spr.agg)
+Warden.spr.m <- dcast(Warden.spr.m, Survey ~ CommonName, fill="0")
+rownames(Warden.spr.m) <- Warden.spr.m[,1]
+Warden.spr.m[,1] <- NULL
+write.csv(Warden.spr.m, "./analysis_data/Warden_spr_m.csv")
+Warden.spr.m <- read.csv("./analysis_data/Warden_spr_m.csv", row.names=1)
+```
+
+MDS unconstrained ordination using metaMDS in package vegan to analyse effects of season within the Warden system
+```{r 2D-ordinations-Warden-only}
+Warden.sum.MDS <- metaMDS(Warden.sum.m, distance = "bray")
+Warden.spr.MDS <- metaMDS(Warden.spr.m, distance = "bray")
+```
+
+```{r extract-Warden-coords-for plot}
+Warden.sum.MDS.pts <- Warden.sum.MDS$points #extract coordinates from ordination
+Warden.sum.MDS.pts <- as.data.frame(Warden.sum.MDS.pts)
+Warden.sum.MDS.pts$Survey <- row.names(Warden.sum.MDS.pts)
+Warden.spr.MDS.pts <- as.data.frame(Warden.spr.MDS$points) #extract coordinates from ordination
+Warden.spr.MDS.pts$Survey <- row.names(Warden.spr.MDS.pts)
+#W.points$season <- c("spring","summer","summer","summer","summer","summer","summer","summer","spring","spring","spring","spring","spring","spring","spring","spring") # add season labels as new column in dataframe
+```
+
+```{r-load-depths-split-byseaosn}
+av.depths <- read.csv("./raw_data/average depths.csv") #load data file with average depths (per survey) for gauged Warden wetlands
+av.depths.spr <- av.depths[av.depths$Season == "Spring", ] #restrict to spring
+D.spr <- as.numeric(av.depths.spr$depth) #create numeric variable for spring depth
+av.depths.sum <- av.depths[av.depths$Season == "Summer", ] #restrict to summer
+D.sum <- as.numeric(av.depths.sum$depth) #create numeric variable for summer depth
+```
+
+Ordination graph of Warden system waterbird communities by survey with surveys undertaken in summer scaled and coloured by average depth of gauged wetlands  
+```{r summer-Warden-ord-plot-bydepths, include=TRUE}
+ggplot(Warden.sum.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.3, 0.3) + ylim(-0.2, 0.2) + coord_fixed(ratio = 1) + geom_point(aes(size = D.sum, colour=D.sum)) + scale_size(range = c(3, 12)) + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none")
+```
+
+Ordination graph of Warden system waterbird communities by survey with surveys undertaken in spring scaled and coloured by average depth of gauged wetlands  
+```{r spring-Warden-ord-plot-bydepths, include=TRUE}
+# note need to restrict both data matrix and average depths to just summer surveys
+ggplot(Warden.spr.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.3, 0.3) + ylim(-0.2, 0.25) + coord_fixed(ratio = 1) + geom_point(aes(size = D.spr, colour=D.spr)) + scale_size(range = c(3, 12)) + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none") + scale_x_reverse(limits=c(0.3, -0.3))
+```
+
+Bio-env analysis to determine influence of depth on waterbrd communities on the Warden wetlands
+```{r bio-env-Warden}
+D.spr.df <- as.data.frame(D.spr, row.names = row.names(Warden.spr.m)) #extract depths
+Warden.spr.be <- bioenv(Warden.spr.m, D.spr.df, method = "spearman", index = "bray")
+Warden.spr.be
+D.sum.df <- as.data.frame(D.sum, row.names = row.names(Warden.sum.m)) #extract depths
+Warden.sum.be <- bioenv(Warden.sum.m, D.sum.df, method = "spearman", index = "bray")
+Warden.sum.be
+```
+
+##Stacked column plots for Warden system waterbirds
+
+```{r input_data_and_prepare_for_just_Warden_stacked_column_graphs}
+input.data3 <- read.csv("./raw_data/Warden_Gore_by_suite_06_19.csv")
+Warden.stack <- input.data3
+Warden.stack <- Warden.stack[Warden.stack$System=="Warden", ] #cut down to just Warden.stack wetlands
+Warden.stack <- Warden.stack[-grep("Grassbird", Warden.stack$CommonName), ] #remove records of little grassbird
+  Warden.stack <- Warden.stack[!(Warden.stack$Date == "23/02/2010" & Warden.stack$SiteCode == "WRP004"), ] #remove duplicate data for Mullet Feb 2010
+  Warden.stack$Date <- as.Date(Warden.stack$Date, format="%d/%m/%Y")
+  Warden.stack$Survey <- Warden.stack$Date #create Survey field from Date
+  Warden.stack$Survey <- format(as.Date(Warden.stack$Survey), "%b-%Y") #change format to mmm-YYYY
+  Warden.stack$Survey <- gsub("Oct-2018", "Nov-2018", Warden.stack$Survey) #lump survey dates that straddle Oct/Nov 2018 and call them Nov-2018
+  yq <- as.yearqtr(as.yearmon(Warden.stack$Date, "%Y/%m/%d")) #create a temporary season field
+Warden.stack$Season <- factor(format(yq, "%q"), levels = 1:4, labels = c("summer", "autumn", "winter", "spring"))
+Warden.stack$SurvOrd <- as.character(Warden.stack$Survey)
+Warden.stack$SurvOrd <- as.numeric(str_replace_all(Warden.stack$SurvOrd, c("Feb-2008" = "1", "Feb-2010" = "2", "Feb-2011" = "3","Feb-2012" = "4", "Feb-2013" = "5", "Feb-2014" = "6", "Feb-2015" = "7", "Feb-2019" = "8", "Oct-2006" = "1", "Oct-2007" = "2", "Nov-2008" = "3", "Nov-2009" = "4", "Nov-2010" = "5", "Dec-2011" = "6", "Oct-2012" = "7", "Nov-2013"= "8", "Nov-2014" = "9", "Nov-2018" = "10")))
+```
+
+```{r import-taxonomy-data-and-add-Group-to-Warden-data}
+Taxonomy <- read.xlsx("./raw_data/Taxonomy.xlsx", sheetIndex=1)
+Warden.stack$Group <- Taxonomy[match(Warden.stack$CommonName, Taxonomy$CommonName), 3]
+```
+
+```{r}
+Warden.stack.agg <- aggregate(data=Warden.stack, Count ~ Group + SurvOrd + Survey + Season, FUN="sum") #aggregate count data by species and survey
+```
+
+```{r plot-spring-survey-abundances}
+Warden.stack.spr <- Warden.stack.agg[Warden.stack.agg$Season=="spring", ] #cut down to just spring data
+ggplot(Warden.stack.spr, aes(x=reorder(Survey, SurvOrd), y=Count, fill=Group)) + geom_bar(stat="identity", colour = "black") + scale_y_continuous(breaks = seq(0,30000, by=5000), limits=c(0,30000)) + labs(x="Survey", y="Abundance") + theme (axis.text.x=element_text(angle=90)) + theme(axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0))) + theme(axis.title.x = element_text(margin = margin(t = 20, r = 0, b = 0, l = 0))) + scale_fill_manual(values = c("#CD9B9B","#912CEE","#104E8B","#698B22","#00EEEE","#A2B5CD","#FFA500","#FFE1FF","#B4CDCD","#C1FFc1","#A52A2A")) #uses Date to reorder survey on x axis
+```
+
+```{r plot-summer-survey-abundances}
+Warden.stack.sum <- Warden.stack.agg[Warden.stack.agg$Season=="summer", ] #cut down to just summer data
+ggplot(Warden.stack.sum, aes(x=reorder(Survey, SurvOrd), y=Count, fill=Group)) + geom_bar(stat="identity", colour = "black") + scale_y_continuous(breaks = seq(0,30000, by=5000), limits=c(0,30000)) + labs(x="Survey", y="Abundance") + theme (axis.text.x=element_text(angle=90)) + theme(axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0))) + theme(axis.title.x = element_text(margin = margin(t = 20, r = 0, b = 0, l = 0))) + scale_fill_manual(values = c("#CD9B9B","#912CEE","#104E8B","#698B22","#00EEEE","#A2B5CD","#FFA500","#FFE1FF","#B4CDCD","#C1FFc1","#A52A2A")) #uses Date to reorder survey on x axis
+```
+
+
