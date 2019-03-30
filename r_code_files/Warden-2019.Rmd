@@ -33,7 +33,7 @@ options(scipen=999)
 ```
 
 ```{r results="hide", warning=FALSE, message=FALSE}
-Packages <- c("vegan", "ggplot2", "stringr", "reshape2", "knitr", "simba", "zoo", "car")
+Packages <- c("vegan", "ggrepel", "ggplot2", "stringr", "reshape2", "knitr", "simba", "zoo", "car")
 lapply(Packages, library, character.only = TRUE)
 #source("./functions/bio_env_ext.R") #The Bio_env and bv_step_ext routines below comes from http://menugget.blogspot.com.au/2011/06/clarke-and-ainsworths-bioenv-and-bvstep.html
 ```
@@ -110,7 +110,11 @@ ggplot(WG.MDS.bySeas.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.4, 0.35) + ylim(-0.3, 0
 
 3D ordination plot of Warden and Gore data combined by season, stress = `r WG.MDS.bySeas$stress`.
 ```{r, 3D-ordination-plot-by-season, include=TRUE}
+<<<<<<< HEAD
 ggplot(WG.3dMDS.bySeas.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.4, 0.35) + ylim(-0.3, 0.3) + geom_point(aes(colour=Season), size=5) + coord_fixed(ratio = 1) + geom_text(aes(label=Survey), size=3, vjust=1, hjust=1.3) + theme (plot.margin=unit(c(0,0,0,5),"mm"))
+=======
+ggplot(WG.3dMDS.bySeas.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.4, 0.35) + ylim(-0.3, 0.3) + geom_point(aes(colour=Season, shape=System), size=5) + coord_fixed(ratio = 1) + geom_text(aes(label=Survey), size=3, vjust=1, hjust=1.3) + theme (plot.margin=unit(c(0,0,0,5),"mm"))
+>>>>>>> 6113420bcbce36a8ce1502dccea2d40dbf561b4d
 ```
 
 ```{r run-simper-analysis-to-determine-influence-of-species-by-season}
@@ -207,10 +211,14 @@ str(WG.MDS.bySyst.pts) #join System and season
 
 ordination plot with symbols coloured by system (Warden versus Gore), `r WG.MDS.bySyst$stress`
 ```{r plot-2D-ordination-by-system, include=TRUE}
+<<<<<<< HEAD
 
 
 
 ggplot(WG.MDS.bySyst.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.6, 0.5) + ylim(-0.3, 0.4) + geom_point(aes(colour=Season, shape=System), size=5) + geom_text(aes(label=Survey), size=3, vjust=1, hjust=1.3)
+=======
+ggplot(WG.MDS.bySyst.pts, aes(x=MDS1, y=MDS2, shape=SystSeas, colour=SystSeas)) + xlim(-0.45, 0.3) + ylim(-0.3, 0.25) + coord_fixed(ratio = 1) + geom_point(size=5) + scale_color_manual(values=c("blue","blue","red","red")) + scale_shape_manual(values=c(0,15,2,17)) + geom_text(aes(label=Survey), colour="black", size=3, vjust=1, hjust=1.3)
+>>>>>>> 6113420bcbce36a8ce1502dccea2d40dbf561b4d
 ```
 
 However, the stress level of the above two-dimensional ordintion is unacceptably high at `r WG.MDS.bySyst$stress`. A three-dimensional ordination was therefore undertaken.
@@ -218,6 +226,7 @@ However, the stress level of the above two-dimensional ordintion is unacceptably
 3D MDS unconstrained ordination using metaMDS in package vegan to compare Warden and Gore wetland systems
 ```{r 3Dordination-by-system}
 WG.3dMDS.bySyst <- metaMDS(WG.bySystem.m, distance = "bray", k=3)
+plot(WG.3dMDS.bySyst, xlim=c(-1,1), display = c("sites", "species"), type="t")
 ```
 
 ```{r extract-coordinates-from-3D-nMDS-and-add-season-to-resulting-data.frame-for Warden-versus-Gore-analysis}
@@ -234,42 +243,81 @@ WG.3dMDS.bySyst.pts$SystSeas <- paste(WG.3dMDS.bySyst.pts$System, WG.3dMDS.bySys
 str(WG.3dMDS.bySyst.pts) #join System and season
 ```
 
+<<<<<<< HEAD
 ordination plot (of 3D ordination) with symbols coloured by system (Warden versus Gore), `r WG.MDS.bySyst$stress`
 ```{r, 3Dordination plot-by-system, include=TRUE}
 ggplot(WG.3dMDS.bySyst.pts, aes(MDS1, MDS2)) + xlim(-0.5, 0.4) + ylim(-0.3, 0.3) + geom_point(aes(colour=System, shape=Season), size=6) + geom_text(aes(label=Survey), size=3, vjust=1, hjust=1.3)
+=======
+```{r plot-3D-ordination-by-system, include=TRUE}
+ggplot(WG.3dMDS.bySyst.pts, aes(x=MDS1, y=MDS2, shape=SystSeas, colour=SystSeas)) + xlim(-0.5, 0.4) + ylim(-0.3, 0.3) + coord_fixed(ratio = 1) + geom_point(size=5) + scale_color_manual(values=c("blue","blue","red","red")) + scale_shape_manual(values=c(0,15,2,17)) + theme(legend.title = element_blank()) + theme(legend.position = "top") + theme(legend.text=element_text(size=12)) + theme(plot.margin=unit(c(0,0,0,0),"mm")) + geom_text_repel(aes(label=Survey), colour="grey", size=5, vjust=1, hjust=1.5)
+>>>>>>> 6113420bcbce36a8ce1502dccea2d40dbf561b4d
 ```
 
+<<<<<<< HEAD
+=======
+```{r plot-2D-ordination-by-system, include=TRUE}
+ggplot(WG.3dMDS.bySyst.pts, aes(x=MDS1, y=MDS2, shape=SystSeas, colour=SystSeas)) + xlim(-0.5, 0.4) + ylim(-0.3, 0.3) + coord_fixed(ratio = 1) + geom_point(size=5) + scale_color_manual(values=c("blue","blue","red","red")) + scale_shape_manual(values=c(0,15,2,17)) + theme(legend.title = element_blank()) + theme(legend.position = "top") + theme(legend.text=element_text(size=12)) + theme(plot.margin=unit(c(5,5,5,0),"mm")) + geom_text_repel(aes(label=Survey), colour="grey", size=5, vjust=1, hjust=1.5)
+```
+
+>>>>>>> 4c61e9b44643d31aeca28eb31f8b31c51017bf7a
 ```{r simper-analysis-of-species-separating-the-two-systems}
   WG.bySyst.Sim <- simper(WG.bySystem.m, WG.3dMDS.bySyst.pts$System) #Simper analysis to determine which species best correlated with differences between seasons of whole dataset
+summary(WG.bySyst.Sim, ordered=TRUE)
 ```
 
-```{r extract-simperdata-for-top8spp}
+```{r extract-simperdata-for-top10pp}
   WG.bySyst.Sim.ext <- WG.bySyst.Sim$Gore_Warden #extract name and contribution data from simper analysis
   WG.bySyst.Sim.average <- as.data.frame(WG.bySyst.Sim.ext$average)#extract average contribution values
   WG.bySyst.Sim.spec <- as.data.frame(WG.bySyst.Sim.ext$species)#extract species names
   WG.bySyst.Sim.ext <- cbind(WG.bySyst.Sim.spec, WG.bySyst.Sim.average) #combine average with species name
   WG.bySyst.Sim.ext <- WG.bySyst.Sim.ext[ order(-WG.bySyst.Sim.ext[,2]), ] #order by average value
 colnames(WG.bySyst.Sim.ext) = c("Species", "cont") #add new column names
-  WG.bySyst.Sim.ext <- as.vector(WG.bySyst.Sim.ext[1:8, 1]) #extract top eight species: first 8 rows
+  WG.bySyst.Sim.ext <- as.vector(WG.bySyst.Sim.ext[1:10, 1]) #extract top eight species: first 8 rows
   #WG.bySyst.Sim.ext <- gsub("\\.", " ", WG.bySyst.Sim.ext)
 ```
 
-```{r restrict-countdata-to-simper-top8spp}
+```{r restrict-countdata-to-simper-top10spp}
 WG.bySystem$Count2 <- WG.bySystem$Count^2
 agg.spec.data.2 <- aggregate(data=WG.bySystem, Count2 ~ CommonName + Survey + System, FUN="sum") #aggregare count data by system and survey
 #agg.spec.data.2 <- as.data.frame(sapply(agg.spec.data.2, gsub, pattern = "-", replacement = " ")) #replace dashes in species names with spaces to match simper output
 agg.spec.data.2 <- agg.spec.data.2[agg.spec.data.2$CommonName %in% WG.bySyst.Sim.ext, ] #restrict aggregated counts to just those top 8 species from simper
 rownames(agg.spec.data.2) <- NULL
 agg.spec.data.2$CommonName <- as.character(agg.spec.data.2$CommonName)
+<<<<<<< HEAD
+colnames(agg.spec.data.2)[4] <- "Abundance"
+=======
+colnames(agg.spec.data.2)[5] <- "Abundance"
+>>>>>>> 4c61e9b44643d31aeca28eb31f8b31c51017bf7a
 write.csv(agg.spec.data.2, "agg.spec.data.2.csv")
 agg.spec.data.2 <- read.csv("agg.spec.data.2.csv")
 ```
 
-A simper analysis was undertaken to determine which species were most responsible for the separation of Warden and Gore wetland systems. For the top eight species, box plots of abundance on the Warden versus Gore systems are provided below.  
+A simper analysis was undertaken to determine which species were most responsible for the separation of Warden and Gore wetland systems. For the top ten species, box plots of abundance on the Warden versus Gore systems are provided below.  
 
+<<<<<<< HEAD
+```{r boxplots-simper-top10spp, include=TRUE}
+qplot(x=System, y=Abundance, data=agg.spec.data.2, geom="boxplot") + facet_wrap(~ CommonName, scales="free_y", ncol=2) + theme(axis.title.y = element_text(hjust=0.5)) #produce facet wrapped box plots showing differences in top 10 simper species by wetland system
+=======
 ```{r boxplots-simper-top8spp, include=TRUE}
-qplot(x=System, y=Count2, data=agg.spec.data.2, geom="boxplot") + facet_wrap(~ CommonName, scales="free_y", ncol=2) #produce facet wrapped box plots showing differences in top 8 simper species by wetland system
+qplot(x=System, y=Abundance, data=agg.spec.data.2, geom="boxplot") + facet_wrap(~ CommonName, scales="free_y", ncol=2) + theme(axis.title.y = element_text(hjust=0.5)) #produce facet wrapped box plots showing differences in top 8 simper species by wetland system
+>>>>>>> 4c61e9b44643d31aeca28eb31f8b31c51017bf7a
 ```
+
+undertake Mann-Whitney for each of the 10 top Simper species and combine results into file called ttest.results<p/>
+```{r}
+WG.bySyst.Sim.ext <- WG.bySyst.Sim.ext[-8]
+WG.bySyst.Sim.ext
+ttest.v <- vector()
+for (i in 1:9) {
+tt.data <- subset(agg.spec.data.2, CommonName == WG.bySyst.Sim.ext[i])
+print(ttest <- wilcox.test(log10(Abundance) ~ System, data = tt.data))
+ttest.v <- c(ttest.v, ttest$p.value)
+}
+ttest.v
+ttest.results <- data.frame(CommonName=WG.bySyst.Sim.ext, p.value=ttest.v)
+ttest.results
+```
+
 
 ##WARDEN SYSTEM ANALYSIS ONLY  
 
@@ -314,7 +362,7 @@ Warden.spr.m <- read.csv("./analysis_data/Warden_spr_m.csv", row.names=1)
 ```
 
 MDS unconstrained ordination using metaMDS in package vegan to analyse effects of season within the Warden system
-```{r 2and3D-ordinations-Wardenonly}
+```{r 2D-ordinations-Warden-only}
 Warden.sum.MDS <- metaMDS(Warden.sum.m, distance = "bray")
 Warden.spr.MDS <- metaMDS(Warden.spr.m, distance = "bray")
 ```
@@ -331,33 +379,32 @@ Warden.spr.MDS.pts$Survey <- row.names(Warden.spr.MDS.pts)
 ```{r-load-depths-split-byseaosn}
 av.depths <- read.csv("./raw_data/average depths.csv") #load data file with average depths (per survey) for gauged Warden wetlands
 av.depths.spr <- av.depths[av.depths$Season == "Spring", ] #restrict to spring
-row.names(av.depths.spr) <- row.names(Warden.spr.m)
-av.depths.spr <- av.depths.spr[, c(3,4)]
-av.depths.spr$depthRS <- c(0,0,0,0,0,0,0,0,0,0)
-write.csv(av.depths.spr, "./analysis_data/av.depths.spr.csv")
-
+D.spr <- as.numeric(av.depths.spr$depth) #create numeric variable for spring depth
 av.depths.sum <- av.depths[av.depths$Season == "Summer", ] #restrict to summer
-row.names(av.depths.sum) <- row.names(Warden.sum.m)
-av.depths.sum <- av.depths.sum[, c(3,4)]
-av.depths.sum$depthRS <- c(0,0,0,0,0,0,0,0)
-write.csv(av.depths.sum, "./analysis_data/av.depths.sum.csv")
+D.sum <- as.numeric(av.depths.sum$depth) #create numeric variable for summer depth
 ```
 
 Ordination graph of Warden system waterbird communities by survey with surveys undertaken in summer scaled and coloured by average depth of gauged wetlands  
 ```{r summer-Warden-ord-plot-bydepths, include=TRUE}
-ggplot(Warden.sum.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.3, 0.5) + ylim(-0.35, 0.3) + coord_fixed(ratio = 1) + geom_point(aes(size = av.depths.sum$depth, colour=av.depths.sum$depth)) + scale_size(range = c(3, 12)) + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none")
+ggplot(Warden.sum.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.3, 0.3) + ylim(-0.2, 0.2) + coord_fixed(ratio = 1) + geom_point(aes(size = D.sum, colour=D.sum)) + scale_size(range = c(3, 12)) + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none")
 ```
 
 Ordination graph of Warden system waterbird communities by survey with surveys undertaken in spring scaled and coloured by average depth of gauged wetlands  
 ```{r spring-Warden-ord-plot-bydepths, include=TRUE}
 # note need to restrict both data matrix and average depths to just summer surveys
-ggplot(Warden.spr.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.3, 0.3) + ylim(-0.25, 0.3) + coord_fixed(ratio = 1) + geom_point(aes(size = av.depths.spr$depth, colour=av.depths.spr$depth)) + scale_size(range = c(3, 12)) + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none")
+ggplot(Warden.spr.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.3, 0.3) + ylim(-0.2, 0.25) + coord_fixed(ratio = 1) + geom_point(aes(size = D.spr, colour=D.spr)) + scale_size(range = c(3, 12)) + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none") + scale_x_reverse(limits=c(0.3, -0.3))
 ```
 
 Bio-env analysis to determine influence of depth on waterbrd communities on the Warden wetlands
 ```{r bio-env-Warden}
-Warden.spr.be <- bioenv(Warden.spr.m, av.depths.spr, method = "spearman", index = "bray")
+D.spr.df <- as.data.frame(D.spr, row.names = row.names(Warden.spr.m)) #extract depths
+Warden.spr.be <- bioenv(Warden.spr.m, D.spr.df, method = "spearman", index = "bray")
 Warden.spr.be
+<<<<<<< HEAD
 Warden.sum.be <- bioenv(Warden.sum.m, av.depths.sum, method = "spearman", index = "bray")
+=======
+D.sum.df <- as.data.frame(D.sum, row.names = row.names(Warden.sum.m)) #extract depths
+Warden.sum.be <- bioenv(Warden.sum.m, D.sum.df, method = "spearman", index = "bray")
+>>>>>>> 6113420bcbce36a8ce1502dccea2d40dbf561b4d
 Warden.sum.be
 ```
