@@ -434,7 +434,7 @@ Uses the following datafiles:
 
 Date and time: `r Sys.time()`
 
-```{r setup, echo=FALSE}
+```{r setup-options, echo=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
 knitr::opts_chunk$set(message = FALSE)
 knitr::opts_chunk$set(include = FALSE)
