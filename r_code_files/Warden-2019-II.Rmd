@@ -32,16 +32,9 @@ knitr::opts_knit$set(root.dir = '../')
 options(scipen=999)
 ```
 
-```{r load-packages, results="hide", warning=FALSE, message=FALSE}
-Packages <- c("vegan", "ggrepel", "ggplot2", "stringr", "xlsx", "gsubfn", "reshape2", "knitr", "simba", "zoo", "car")
-lapply(Packages, library, character.only = TRUE)
-#source("./functions/bio_env_ext.R") #The Bio_env and bv_step_ext routines below comes from http://menugget.blogspot.com.au/2011/06/clarke-and-ainsworths-bioenv-and-bvstep.html
-```
-
 ```{r set-seed}
 set.seed(1234)
 ```
-
 
 #Analyses of waterbird data from the Warden and Gore Ramsar wetlands 2006 to 2019
   
@@ -412,12 +405,17 @@ ggplot(Warden.stack.sum, aes(x=reorder(Survey, SurvOrd), y=Count, fill=Group)) +
 # Esperance rainfall versus
 
 ```{r}
-rainfall <- read.csv("./raw_data/multi_station_cdm.csv")
+rainfall <- read.csv("./raw_data/multi station CDM.csv")
+rainfall$Month <- as.yearmon(rainfall$Month, "%b-%y")
+rainfall$Month.2 <- rainfall$Month
+rainfall$Month.2 <- as.Date(rainfall$Month)
+databreaks <- seq(as.Date("2004-01-01"), as.Date("2019-03-01"), by="3 month")
+labels <- as.yearmon(databreaks, "%b-%y")
+labels
 ```
 
 ```{r}
-ggplot(rainfall, aes(x = Month, y = CDMM, colour=Station)) +
-  geom_point()
+ggplot(rainfall, aes(x = Month.2, y = CDMM, colour=Station)) + geom_line() + theme (axis.text.x=element_text(angle=90)) + scale_x_date(breaks=databreaks, labels = labels)
 ```
 
 
