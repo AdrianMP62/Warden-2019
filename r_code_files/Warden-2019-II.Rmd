@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 ---
 title: "Warden and Gore waterbird analyses"
 author: "Adrian Pinder"
@@ -287,6 +286,7 @@ ttest.results
 
 ##WARDEN SYSTEM ANALYSIS ONLY  
 
+###Ordinations and associated analyses
 ```{r input_data_and_prepare_for_just_Warden_ordinations}
 input.data3 <- read.csv("./raw_data/Warden_Gore_by_suite_06_19.csv")
 Warden <- input.data3
@@ -312,13 +312,14 @@ Warden.spr.agg$Count <- sqrt(Warden.spr.agg$Count)
 ```
 
 ```{r convert-Warden-only-data-to-seasonal-matrices}
+#summer
 Warden.sum.m <- melt(Warden.sum.agg)
 Warden.sum.m <- dcast(Warden.sum.m, Survey ~ CommonName, fill="0")
 rownames(Warden.sum.m) <- Warden.sum.m[,1]
 Warden.sum.m[,1] <- NULL
 write.csv(Warden.sum.m, "Warden_sum_m.csv")
 Warden.sum.m <- read.csv("Warden_sum_m.csv", row.names=1)
-
+#spring
 Warden.spr.m <- melt(Warden.spr.agg)
 Warden.spr.m <- dcast(Warden.spr.m, Survey ~ CommonName, fill="0")
 rownames(Warden.spr.m) <- Warden.spr.m[,1]
@@ -333,29 +334,25 @@ Warden.sum.MDS <- metaMDS(Warden.sum.m, distance = "bray")
 Warden.spr.MDS <- metaMDS(Warden.spr.m, distance = "bray")
 ```
 
-```{r extract-Warden-coords-for plot}
-Warden.sum.MDS.pts <- Warden.sum.MDS$points #extract coordinates from ordination
-Warden.sum.MDS.pts <- as.data.frame(Warden.sum.MDS.pts)
+```{r extract-Warden-coords-for-plot}
+Warden.sum.MDS.pts <- as.data.frame(Warden.sum.MDS$points) #extract coordinates from ordination
 Warden.sum.MDS.pts$Survey <- row.names(Warden.sum.MDS.pts)
 Warden.spr.MDS.pts <- as.data.frame(Warden.spr.MDS$points) #extract coordinates from ordination
 Warden.spr.MDS.pts$Survey <- row.names(Warden.spr.MDS.pts)
 #W.points$season <- c("spring","summer","summer","summer","summer","summer","summer","summer","spring","spring","spring","spring","spring","spring","spring","spring") # add season labels as new column in dataframe
 ```
 
-```{r-load-depths-split-byseaosn}
+```{r-load-env-data-split-by-season}
 av.depths <- read.csv("./raw_data/average depths.csv") #load data file with average depths (per survey) for gauged Warden wetlands
+#for average depths only
 av.depths.spr <- av.depths[av.depths$Season == "Spring", ] #restrict to spring
 D.spr <- as.numeric(av.depths.spr$depth) #create numeric variable for spring depth
 av.depths.sum <- av.depths[av.depths$Season == "Summer", ] #restrict to summer
 D.sum <- as.numeric(av.depths.sum$depth) #create numeric variable for summer depth
-```
-
-```{r}
+#for multiple variables
 BEdat.spr <- as.data.frame(av.depths.spr[, 3:5], row.names = as.character(av.depths.spr$Survey))
 BEdat.sum <- as.data.frame(av.depths.sum[, 3:5], row.names = as.character(av.depths.sum$Survey))
 ```
-
-
 
 Ordination graph of Warden system waterbird communities by survey with surveys undertaken in summer scaled and coloured by average depth of gauged wetlands  
 ```{r summer-Warden-ord-plot-bydepths, include=TRUE}
@@ -370,6 +367,7 @@ ggplot(Warden.spr.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.3, 0.3) + ylim(-0.2, 0
 
 Bio-env analysis to determine influence of depth on waterbrd communities on the Warden wetlands
 ```{r bio-env-Warden}
+#uses the multiple env variable dataset BEdat.spr and BEdat.sum rather than just the depth only datast\et.
 D.spr.df <- as.data.frame(D.spr, row.names = row.names(Warden.spr.m)) #extract depths
 Warden.spr.be <- bioenv(Warden.spr.m, BEdat.spr, method = "spearman", index = "bray")
 Warden.spr.be
@@ -378,7 +376,7 @@ Warden.sum.be <- bioenv(Warden.sum.m, BEdat.sum, method = "spearman", index = "b
 Warden.sum.be
 ```
 
-##Stacked column plots for Warden system waterbirds
+###Stacked column plots for Warden system waterbirds
 
 ```{r input_data_and_prepare_for_just_Warden_stacked_column_graphs}
 input.data3 <- read.csv("./raw_data/Warden_Gore_by_suite_06_19.csv")
@@ -415,9 +413,9 @@ Warden.stack.sum <- Warden.stack.agg[Warden.stack.agg$Season=="summer", ] #cut d
 ggplot(Warden.stack.sum, aes(x=reorder(Survey, SurvOrd), y=Count, fill=Group)) + geom_bar(stat="identity", colour = "black") + scale_y_continuous(breaks = seq(0,30000, by=5000), limits=c(0,30000)) + labs(x="Survey", y="Abundance") + theme (axis.text.x=element_text(angle=90)) + theme(axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0))) + theme(axis.title.x = element_text(margin = margin(t = 20, r = 0, b = 0, l = 0))) + scale_fill_manual(values = c("#CD9B9B","#912CEE","#104E8B","#698B22","#00EEEE","#A2B5CD","#FFA500","#FFE1FF","#B4CDCD","#C1FFc1","#A52A2A")) #uses Date to reorder survey on x axis
 ```
 
-# Esperance rainfall versus
+### Esperance rainfall for Warden wetlands
 
-```{r}
+```{r load-and-prepare-rainfall-data}
 rainfall <- read.csv("./raw_data/multi station CDM.csv")
 rainfall$Month <- as.yearmon(rainfall$Month, "%b-%y")
 rainfall$Month.2 <- rainfall$Month
@@ -427,21 +425,18 @@ labels <- as.yearmon(databreaks, "%b-%y")
 labels
 ```
 
-```{r}
+```{r plot-of-rainfall-data}
 ggplot(rainfall, aes(x = Month.2, y = CDMM, colour=Station)) + geom_line() + theme (axis.text.x=element_text(angle=90)) + scale_x_date(breaks=databreaks, labels = labels)
 ```
 
-```{r calculate spring total abundances}
+```{r calculate spring total waterbird-abundances}
 Warden.spr$year <- lubridate::year(Warden.spr$Date)
 Warden.spr.yearsums <- aggregate(data=Warden.spr, Count ~ year + year, FUN="sum")
 write.csv(Warden.spr.yearsums, "./analysis_data/warden_spr_yearsums.csv")
 ```
 
-```{r calculate summer total abundances}
+```{r calculate summer total waterbird-abundances}
 Warden.sum$year <- lubridate::year(Warden.sum$Date)
 Warden.sum.yearsums <- aggregate(data=Warden.sum, Count ~ year + year, FUN="sum")
 write.csv(Warden.sum.yearsums, "./analysis_data/warden_sum_yearsums.csv")
 ```
-
-
-
