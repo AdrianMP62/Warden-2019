@@ -418,5 +418,17 @@ labels
 ggplot(rainfall, aes(x = Month.2, y = CDMM, colour=Station)) + geom_line() + theme (axis.text.x=element_text(angle=90)) + scale_x_date(breaks=databreaks, labels = labels)
 ```
 
+```{r calculate spring total abundances}
+Warden.spr$year <- lubridate::year(Warden.spr$Date)
+Warden.spr.yearsums <- aggregate(data=Warden.spr, Count ~ year + year, FUN="sum")
+write.csv(Warden.spr.yearsums, "./analysis_data/warden_spr_yearsums.csv")
+```
+
+```{r calculate summer total abundances}
+Warden.sum$year <- lubridate::year(Warden.sum$Date)
+Warden.sum.yearsums <- aggregate(data=Warden.sum, Count ~ year + year, FUN="sum")
+write.csv(Warden.sum.yearsums, "./analysis_data/warden_sum_yearsums.csv")
+```
+
 
 
