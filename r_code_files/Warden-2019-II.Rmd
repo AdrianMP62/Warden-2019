@@ -36,6 +36,12 @@ options(scipen=999)
 set.seed(1234)
 ```
 
+```{r load-packages, results="hide", warning=FALSE, message=FALSE}
+Packages <- c("vegan", "ggrepel", "ggplot2", "lubridate", "stringr", "gsubfn", "reshape2", "knitr", "simba", "zoo", "car")
+lapply(Packages, library, character.only = TRUE)
+#source("./functions/bio_env_ext.R") #The Bio_env and bv_step_ext routines below comes from http://menugget.blogspot.com.au/2011/06/clarke-and-ainsworths-bioenv-and-bvstep.html
+```
+
 #Analyses of waterbird data from the Warden and Gore Ramsar wetlands 2006 to 2019
   
 The following is the output from an Rmarkdown R script for analyses of waterbird communities of the Warden and Gore wetland systems surveyed between Oct 2006 and Feb 2019.  
@@ -344,6 +350,13 @@ av.depths.sum <- av.depths[av.depths$Season == "Summer", ] #restrict to summer
 D.sum <- as.numeric(av.depths.sum$depth) #create numeric variable for summer depth
 ```
 
+```{r}
+BEdat.spr <- as.data.frame(av.depths.spr[, 3:5], row.names = as.character(av.depths.spr$Survey))
+BEdat.sum <- as.data.frame(av.depths.sum[, 3:5], row.names = as.character(av.depths.sum$Survey))
+```
+
+
+
 Ordination graph of Warden system waterbird communities by survey with surveys undertaken in summer scaled and coloured by average depth of gauged wetlands  
 ```{r summer-Warden-ord-plot-bydepths, include=TRUE}
 ggplot(Warden.sum.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.3, 0.3) + ylim(-0.2, 0.2) + coord_fixed(ratio = 1) + geom_point(aes(size = D.sum, colour=D.sum)) + scale_size(range = c(3, 12)) + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none")
@@ -358,10 +371,10 @@ ggplot(Warden.spr.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.3, 0.3) + ylim(-0.2, 0
 Bio-env analysis to determine influence of depth on waterbrd communities on the Warden wetlands
 ```{r bio-env-Warden}
 D.spr.df <- as.data.frame(D.spr, row.names = row.names(Warden.spr.m)) #extract depths
-Warden.spr.be <- bioenv(Warden.spr.m, D.spr.df, method = "spearman", index = "bray")
+Warden.spr.be <- bioenv(Warden.spr.m, BEdat.spr, method = "spearman", index = "bray")
 Warden.spr.be
 D.sum.df <- as.data.frame(D.sum, row.names = row.names(Warden.sum.m)) #extract depths
-Warden.sum.be <- bioenv(Warden.sum.m, D.sum.df, method = "spearman", index = "bray")
+Warden.sum.be <- bioenv(Warden.sum.m, BEdat.sum, method = "spearman", index = "bray")
 Warden.sum.be
 ```
 
