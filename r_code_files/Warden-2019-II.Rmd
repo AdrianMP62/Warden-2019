@@ -36,7 +36,7 @@ set.seed(1234)
 ```
 
 ```{r load-packages, results="hide", warning=FALSE, message=FALSE}
-Packages <- c("vegan", "ggrepel", "ggplot2", "lubridate", "stringr", "gsubfn", "reshape2", "knitr", "simba", "zoo", "car")
+Packages <- c("vegan", "ggrepel", "ggplot2", "scales","lubridate", "stringr", "gsubfn", "reshape2", "knitr", "simba", "zoo", "car")
 lapply(Packages, library, character.only = TRUE)
 #source("./functions/bio_env_ext.R") #The Bio_env and bv_step_ext routines below comes from http://menugget.blogspot.com.au/2011/06/clarke-and-ainsworths-bioenv-and-bvstep.html
 ```
@@ -306,9 +306,9 @@ Warden$Season <- factor(format(yq, "%q"), levels = 1:4, labels = c("summer", "au
 
 ```{r aggregate_count_data_by_Common_name_for_each_season}
 Warden.sum.agg <- aggregate(data=Warden.sum, Count ~ CommonName + Survey, FUN="sum") #aggregate count data by species and survey
-Warden.sum.agg$Count <- sqrt(Warden.sum.agg$Count)
+#Warden.sum.agg$Count <- sqrt(Warden.sum.agg$Count) removed sqrt because metaMDS routine in vegan transforms species abundance data is required.
 Warden.spr.agg<- aggregate(data=Warden.spr, Count ~ CommonName + Survey, FUN="sum") #aggregate count data by species and survey
-Warden.spr.agg$Count <- sqrt(Warden.spr.agg$Count)
+#Warden.spr.agg$Count <- sqrt(Warden.spr.agg$Count) removed sqrt because metaMDS routine in vegan transforms species abundance data is required.
 ```
 
 ```{r convert-Warden-only-data-to-seasonal-matrices}
@@ -354,6 +354,22 @@ BEdat.spr <- as.data.frame(av.depths.spr[, 3:5], row.names = as.character(av.dep
 BEdat.sum <- as.data.frame(av.depths.sum[, 3:5], row.names = as.character(av.depths.sum$Survey))
 ```
 
+```{r check-correlation-between-env-variables}
+cor(BEdat.spr, method="spearman")
+cor(BEdat.sum, method="spearman")
+```
+
+```{r range-standardise-env-data}
+BEdat.spr.st <-BEdat.spr
+for (i in 1:3){
+  BEdat.spr.st[, i] <- rescale(BEdat.spr[, i], to = c(0,1))
+}
+BEdat.sum.st <-BEdat.sum
+for (i in 1:3){
+  BEdat.sum.st[, i] <- rescale(BEdat.sum[, i], to = c(0,1))
+}
+```
+
 Ordination graph of Warden system waterbird communities by survey with surveys undertaken in summer scaled and coloured by average depth of gauged wetlands  
 ```{r summer-Warden-ord-plot-bydepths, include=TRUE}
 ggplot(Warden.sum.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.3, 0.3) + ylim(-0.2, 0.2) + coord_fixed(ratio = 1) + geom_point(aes(size = D.sum, colour=D.sum)) + scale_size(range = c(3, 12)) + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none")
@@ -369,12 +385,27 @@ Bio-env analysis to determine influence of depth on waterbrd communities on the 
 ```{r bio-env-Warden}
 #uses the multiple env variable dataset BEdat.spr and BEdat.sum rather than just the depth only datast\et.
 D.spr.df <- as.data.frame(D.spr, row.names = row.names(Warden.spr.m)) #extract depths
-Warden.spr.be <- bioenv(Warden.spr.m, BEdat.spr, method = "spearman", index = "bray")
+Warden.spr.be <- bioenv(Warden.spr.m, BEdat.spr.st, method = "spearman", index = "bray", metric="euclidean")
 Warden.spr.be
 D.sum.df <- as.data.frame(D.sum, row.names = row.names(Warden.sum.m)) #extract depths
-Warden.sum.be <- bioenv(Warden.sum.m, BEdat.sum, method = "spearman", index = "bray")
+Warden.sum.be <- bioenv(Warden.sum.m, BEdat.sum.st, method = "spearman", index = "bray", metric=euclidean)
 Warden.sum.be
 ```
+
+```{r dbRDA-of-Warden-data}
+Warden.spr.dbrda <- capscale(Warden.spr.m ~ depth + CDM3MO_9542 + CDM6MO_9542, BEdat.spr.st, dist="bray")
+Warden.spr.dbrda
+plot(Warden.spr.dbrda)
+Warden.sum.dbrda <- capscale(Warden.sum.m ~ depth + CDM3MO_9542 + CDM6MO_9542, BEdat.sum, dist="bray")
+Warden.sum.dbrda
+plot(Warden.sum.dbrda)
+```
+
+```{r norm-norm-text}
+qqnorm(BEdat.sum.st$CDM6MO_9542)
+```
+
+
 
 ###Stacked column plots for Warden system waterbirds
 
@@ -429,6 +460,7 @@ labels
 ggplot(rainfall, aes(x = Month.2, y = CDMM, colour=Station)) + geom_line() + theme (axis.text.x=element_text(angle=90)) + scale_x_date(breaks=databreaks, labels = labels)
 ```
 
+###calculate total abundances per survey
 ```{r calculate spring total waterbird-abundances}
 Warden.spr$year <- lubridate::year(Warden.spr$Date)
 Warden.spr.yearsums <- aggregate(data=Warden.spr, Count ~ year + year, FUN="sum")
