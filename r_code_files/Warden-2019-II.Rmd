@@ -426,7 +426,7 @@ Warden.stack$SurvOrd <- as.numeric(str_replace_all(Warden.stack$SurvOrd, c("Feb-
 ```
 
 ```{r import-taxonomy-data-and-add-Group-to-Warden-data}
-Taxonomy <- read.xlsx("./raw_data/Taxonomy.xlsx", sheetIndex=1)
+Taxonomy <- read.csv("./raw_data/Taxonomy.csv")
 Warden.stack$Group <- Taxonomy[match(Warden.stack$CommonName, Taxonomy$CommonName), 3]
 ```
 
