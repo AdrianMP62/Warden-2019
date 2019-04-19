@@ -71,6 +71,9 @@ write.csv(WG.bySeason, "./analysis_data/WG.bySeason.csv")
   WG.bySeason.agg$Count <- sqrt(WG.bySeason.agg$Count) #convert counts to square root
 ```
 
+
+
+
 ```{r create-matrix-for-ordination}
   WG.bySeason.agg <- melt(WG.bySeason.agg) #melt data 
   WG.bySeason.m <- dcast(WG.bySeason.agg, Survey ~ CommonName, fill="0") #create matrix from flat-file
@@ -304,6 +307,11 @@ Warden$Season <- factor(format(yq, "%q"), levels = 1:4, labels = c("summer", "au
   Warden.spr <- Warden[Warden$Season == "spring", ] #spring only data
 ```
 
+```{r create-two-way-table}
+Warden_matrix <- acast(Warden, CommonName~Survey, value.var="Count", fun.aggregate = sum) #sums counts for each species and survey
+write.csv(Warden_matrix, "./raw_data/Warden_matrix.csv")
+```
+
 ```{r aggregate_count_data_by_Common_name_for_each_season}
 Warden.sum.agg <- aggregate(data=Warden.sum, Count ~ CommonName + Survey, FUN="sum") #aggregate count data by species and survey
 #Warden.sum.agg$Count <- sqrt(Warden.sum.agg$Count) removed sqrt because metaMDS routine in vegan transforms species abundance data is required.
@@ -346,12 +354,14 @@ Warden.spr.MDS.pts$Survey <- row.names(Warden.spr.MDS.pts)
 av.depths <- read.csv("./raw_data/average depths.csv") #load data file with average depths (per survey) for gauged Warden wetlands
 #for average depths only
 av.depths.spr <- av.depths[av.depths$Season == "Spring", ] #restrict to spring
+av.depths.spr <- av.depths.spr[order(av.depths.spr$Survey), ]
 D.spr <- as.numeric(av.depths.spr$depth) #create numeric variable for spring depth
 av.depths.sum <- av.depths[av.depths$Season == "Summer", ] #restrict to summer
+av.depths.sum <- av.depths.sum[order(av.depths.sum$Survey), ]
 D.sum <- as.numeric(av.depths.sum$depth) #create numeric variable for summer depth
 #for multiple variables
-BEdat.spr <- as.data.frame(av.depths.spr[, 3:5], row.names = as.character(av.depths.spr$Survey))
-BEdat.sum <- as.data.frame(av.depths.sum[, 3:5], row.names = as.character(av.depths.sum$Survey))
+BEdat.spr <- as.data.frame(av.depths.spr[, 3:9], row.names = as.character(av.depths.spr$Survey))
+BEdat.sum <- as.data.frame(av.depths.sum[, 3:9], row.names = as.character(av.depths.sum$Survey))
 ```
 
 ```{r check-correlation-between-env-variables}
@@ -361,18 +371,18 @@ cor(BEdat.sum, method="spearman")
 
 ```{r range-standardise-env-data}
 BEdat.spr.st <-BEdat.spr
-for (i in 1:3){
+for (i in 1:7){
   BEdat.spr.st[, i] <- rescale(BEdat.spr[, i], to = c(0,1))
 }
 BEdat.sum.st <-BEdat.sum
-for (i in 1:3){
+for (i in 1:7){
   BEdat.sum.st[, i] <- rescale(BEdat.sum[, i], to = c(0,1))
 }
 ```
 
 Ordination graph of Warden system waterbird communities by survey with surveys undertaken in summer scaled and coloured by average depth of gauged wetlands  
 ```{r summer-Warden-ord-plot-bydepths, include=TRUE}
-ggplot(Warden.sum.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.3, 0.3) + ylim(-0.2, 0.2) + coord_fixed(ratio = 1) + geom_point(aes(size = D.sum, colour=D.sum)) + scale_size(range = c(3, 12)) + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none")
+ggplot(Warden.sum.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.35, 0.3) + ylim(-0.2, 0.2) + coord_fixed(ratio = 1) + geom_point(aes(size = D.sum, colour=D.sum)) + scale_size(range = c(3, 12)) + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none")
 ```
 
 Ordination graph of Warden system waterbird communities by survey with surveys undertaken in spring scaled and coloured by average depth of gauged wetlands  
@@ -388,7 +398,7 @@ D.spr.df <- as.data.frame(D.spr, row.names = row.names(Warden.spr.m)) #extract d
 Warden.spr.be <- bioenv(Warden.spr.m, BEdat.spr.st, method = "spearman", index = "bray", metric="euclidean")
 Warden.spr.be
 D.sum.df <- as.data.frame(D.sum, row.names = row.names(Warden.sum.m)) #extract depths
-Warden.sum.be <- bioenv(Warden.sum.m, BEdat.sum.st, method = "spearman", index = "bray", metric=euclidean)
+Warden.sum.be <- bioenv(Warden.sum.m, BEdat.sum.st, method = "spearman", index = "bray", metric="euclidean")
 Warden.sum.be
 ```
 
