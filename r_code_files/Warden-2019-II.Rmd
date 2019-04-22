@@ -403,12 +403,12 @@ Warden.sum.be
 ```
 
 ```{r dbRDA-of-Warden-data}
-Warden.spr.dbrda <- capscale(Warden.spr.m ~ depth + CDM3MO_9542 + CDM6MO_9542, BEdat.spr.st, dist="bray")
+Warden.spr.dbrda <- capscale(Warden.spr.m ~ depth + CDM3MO_ESPER + CDM6MO_ESPER + CDM12MO_ESPER, BEdat.spr.st, dist="bray")
 Warden.spr.dbrda
-plot(Warden.spr.dbrda)
-Warden.sum.dbrda <- capscale(Warden.sum.m ~ depth + CDM3MO_9542 + CDM6MO_9542, BEdat.sum, dist="bray")
+plot(Warden.spr.dbrda, display = c("wa", "bp"))
+Warden.sum.dbrda <- capscale(Warden.sum.m ~ depth + CDM3MO_EAERO + CDM6MO_EAERO + CDM12MO_EAERO, BEdat.sum, dist="bray")
 Warden.sum.dbrda
-plot(Warden.sum.dbrda)
+plot(Warden.sum.dbrda, display = c("wa", "bp"))
 ```
 
 ```{r norm-norm-text}
