@@ -417,29 +417,25 @@ ggplot(Warden.env.spr.MDS.pts, aes(x=MDS2, y=MDS1)) + xlim(-5, 5) + ylim(-5, 5) 
 ```
 
 ```{r dbRDA-of-Warden-data}
-Warden.spr.dbrda <- capscale(Warden.spr.m ~ CDM12MO_EAERO + CDM12MO_MYRUP, BEdat.spr, dist="bray")
+Warden.spr.dbrda <- capscale(Warden.spr.m ~ depth + Condition(pipeline), BEdat.spr, dist="bray")
 Warden.spr.dbrda
-plot(Warden.spr.dbrda, display = c("wa", "bp"))
-Warden.sum.dbrda <- capscale(Warden.sum.m ~ CDM12MO_EAERO, BEdat.sum, dist="bray")
+plot(Warden.spr.dbrda, display = c("wa", "bp", "sp"))
+Warden.sum.dbrda <- capscale(Warden.sum.m ~ CDM3MO_ESPER + CDM6MO_MYRUP, BEdat.sum, dist="bray")
 Warden.sum.dbrda
-plot(Warden.sum.dbrda, display = c("wa", "bp"))
+plot(Warden.sum.dbrda, display = c("wa", "bp", "sp"))
 ```
 
-```{r}
-m <- ordistep(Warden.spr.dbrda, perm.max=200)
+```{r stepwise-rda-model-building-spring}
+M.spr.1 <- capscale(Warden.spr.m ~ ., BEdat.spr, dist="bray") #create model with all parameters
+M.spr.0 <- capscale(Warden.spr.m ~ 1, BEdat.spr, dist="bray") #create model with no parameters
+m <- ordistep(M.spr.0, scope=formula(M.spr.1), permutations=500) #stepwise model build
 ```
 
-
-
-
-
-```{r}
-M1 <- capscale(Warden.spr.m ~ ., BEdat.spr, dist="bray")
-M0 <- capscale(Warden.spr.m ~ 1, BEdat.spr, dist="bray")
-m <- ordistep(M0, scope=formula(M1), perm.max=200)
+```{r stepwise-rda-model-building-summer}
+M.sum.1 <- capscale(Warden.sum.m ~ ., BEdat.sum, dist="bray") #create model with all parameters
+M.sum.0 <- capscale(Warden.sum.m ~ 1, BEdat.sum, dist="bray") #create model with no parameters
+m <- ordistep(M.sum.0, scope=formula(M.sum.1), permutations=500) #stepwise model build
 ```
-
-
 
 
 
