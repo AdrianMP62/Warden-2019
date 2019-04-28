@@ -352,17 +352,16 @@ Warden.spr.MDS.pts$Survey <- row.names(Warden.spr.MDS.pts)
 ```
 
 ```{r-load-env-data-split-by-season}
-av.depths <- read.csv("./raw_data/average depths.csv") #load data file with average depths (per survey) for gauged Warden wetlands
-#for average depths only
-av.depths$Pipeline <- NULL #remove factor for pipeline open/close
-av.depths$Pipeline_days <- NULL
-av.depths <- av.depths[, -av.depths$Pipeline_days]
-av.depths.spr <- av.depths[av.depths$Season == "Spring", ] #restrict to spring
-av.depths.spr <- av.depths.spr[order(av.depths.spr$Survey), ]
-av.depths.sum <- av.depths[av.depths$Season == "Summer", ] #restrict to summer
-av.depths.sum <- av.depths.sum[order(av.depths.sum$Survey), ]
-BEdat.spr <- as.data.frame(av.depths.spr[, 3:ncol(av.depths.spr)], row.names = as.character(av.depths.spr$Survey))
-BEdat.sum <- as.data.frame(av.depths.sum[, 3:ncol(av.depths.sum)], row.names = as.character(av.depths.sum$Survey))
+av.depths <- read.csv("./raw_data/average depths.csv") #load data file with average depths (per survey) for gauged Warden wetlands plus other env data
+row.names(av.depths) <- av.depths$Survey
+av.depths <- av.depths[order(av.depths$Season, av.depths$Survey), ] #order alphabetically by season then survey
+Pipeline.spr <- av.depths[av.depths$Season == "Spring", "Pipeline_days", drop=FALSE]
+Pipeline.sum <- av.depths[av.depths$Season == "Summer", "Pipeline_days", drop=FALSE]
+av.depths$Pipeline_days <- NULL #remove pipeline data from av.depths
+BEdat.spr <- av.depths[av.depths$Season == "Spring", 3:ncol(av.depths)] #restrict av.depths to spring
+row.names(BEdat.spr) <- row.names(av.depths[av.depths$Season == "Spring", ])
+BEdat.sum <- av.depths[av.depths$Season == "Summer", 3:ncol(av.depths)] #restrict av.depths to summer
+row.names(BEdat.sum) <- row.names(av.depths[av.depths$Season == "Summer", ])
 ```
 
 ```{r check-correlation-between-env-variables}
@@ -370,21 +369,13 @@ cor(BEdat.spr, method="spearman")
 cor(BEdat.sum, method="spearman")
 ```
 
-```{r additional-test-datasets}
-P <- BEdat.spr[, c(4,5)] #create a pipeline only dataset
-C <- BEdat.spr[, c(7:15)] #create rainfall only dataset
-C <- C+min(C)
-C <- vegdist(C, method="euclidean") #create rainfall only similarity matrix
-C
-```
-
 ```{r range-standardise-env-data}
 BEdat.spr.st <-BEdat.spr
-for (i in 1:7){
+for (i in 1:ncol(BEdat.spr)){
   BEdat.spr.st[, i] <- rescale(BEdat.spr[, i], to = c(0,1))
 }
 BEdat.sum.st <-BEdat.sum
-for (i in 1:7){
+for (i in 1:ncol(BEdat.sum)){
   BEdat.sum.st[, i] <- rescale(BEdat.sum[, i], to = c(0,1))
 }
 ```
@@ -397,19 +388,32 @@ ggplot(Warden.sum.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.35, 0.3) + ylim(-0.2, 
 Ordination graph of Warden system waterbird communities by survey with surveys undertaken in spring scaled and coloured by average depth of gauged wetlands  
 ```{r spring-Warden-ord-plot-bydepths, include=TRUE}
 # note need to restrict both data matrix and average depths to just summer surveys
-ggplot(Warden.spr.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.3, 0.3) + ylim(-0.2, 0.25) + coord_fixed(ratio = 1) + geom_point(aes(size = BEdat.spr.st$Pipeline_days, colour = BEdat.spr.st$Pipeline_days)) + scale_size(range = c(3, 12)) + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none") + scale_x_reverse(limits=c(0.3, -0.3))
+ggplot(Warden.spr.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.3, 0.3) + ylim(-0.2, 0.25) + coord_fixed(ratio = 1) + geom_point(aes(size = Pipeline.spr$Pipeline_days, colour = Pipeline.spr$Pipeline_days)) + scale_size(range = c(3, 12)) + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none") + scale_x_reverse(limits=c(0.3, -0.3))
 ```
 
-Bio-env analysis to determine influence of depth on waterbrd communities on the Warden wetlands
+```{r create-matrix-for-Pipeline}
+Pipeline.spr.m <-vegdist(Pipeline.spr, method="euclidean")
+```
+
+
+
+
+Bio-env analysis to determine influence of pipeline operation, depth and rainfall on waterbrd communities on the Warden wetlands
 ```{r bio-env-Warden}
 #uses the multiple env variable dataset BEdat.spr and BEdat.sum rather than just the depth only datastet.
 #SPRING
-Warden.spr.be <- bioenv(Warden.spr.m, BEdat.spr, method = "spearman", index = "bray", metric="euclidean")
+#Pipeline days only
+Warden.spr.be.P <- bioenv(Warden.spr.m, Pipeline.spr, method = "spearman", index = "bray", metric="euclidean")
+Warden.spr.be.P
+Warden.spr.md <- vegdist(Warden.spr.m, method = "bray") #calculate Warden spring waterbird bray-curtis dissimilarity index
+mantel(Warden.spr.md, Pipeline.spr.m, method="spearman", permutations=999) #mantel test to determine permutational significance
+
+#other vars
+Warden.spr.be <- bioenv(Warden.spr.m, BEdat.spr, method = "spearman", index = "bray", metric="euclidean", partial = Pipeline.spr.m)
 Warden.spr.be #results of bio-env for spring
 Warden.spr.bed <- bioenvdist(Warden.spr.be, which = "best") #extract euclidean distance matrix for best set of env vars
 Warden.spr.md <- vegdist(Warden.spr.m, method = "bray") #calculate Warden spring waterbird bray-curtis dissimilarity index
 mantel(Warden.spr.md, Warden.spr.bed, method="spearman", permutations=999) #mantel test to determine permutational significance
-?mantel    
 #SUMMER
 Warden.sum.be <- bioenv(Warden.sum.m, BEdat.sum, method = "spearman", index = "bray", metric="euclidean")
 Warden.sum.be
