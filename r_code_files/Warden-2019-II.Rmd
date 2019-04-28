@@ -38,7 +38,8 @@ set.seed(1234)
 ```{r load-packages, results="hide", warning=FALSE, message=FALSE}
 Packages <- c("vegan", "ggrepel", "ggplot2", "scales","lubridate", "stringr", "gsubfn", "reshape2", "knitr", "simba", "zoo", "car")
 lapply(Packages, library, character.only = TRUE)
-#source("./functions/bio_env_ext.R") #The Bio_env and bv_step_ext routines below comes from http://menugget.blogspot.com.au/2011/06/clarke-and-ainsworths-bioenv-and-bvstep.html
+source("./functions/bio_env_ext.R") #The Bio_env and bv_step_ext routines below comes from http://menugget.blogspot.com.au/2011/06/clarke-and-ainsworths-bioenv-and-bvstep.html
+source("./functions/bv_step_ext.R")
 ```
 
 #Analyses of waterbird data from the Warden and Gore Ramsar wetlands 2006 to 2019
@@ -353,20 +354,28 @@ Warden.spr.MDS.pts$Survey <- row.names(Warden.spr.MDS.pts)
 ```{r-load-env-data-split-by-season}
 av.depths <- read.csv("./raw_data/average depths.csv") #load data file with average depths (per survey) for gauged Warden wetlands
 #for average depths only
+av.depths$Pipeline <- NULL #remove factor for pipeline open/close
+av.depths$Pipeline_days <- NULL
+av.depths <- av.depths[, -av.depths$Pipeline_days]
 av.depths.spr <- av.depths[av.depths$Season == "Spring", ] #restrict to spring
 av.depths.spr <- av.depths.spr[order(av.depths.spr$Survey), ]
-D.spr <- as.numeric(av.depths.spr$depth) #create numeric variable for spring depth
 av.depths.sum <- av.depths[av.depths$Season == "Summer", ] #restrict to summer
 av.depths.sum <- av.depths.sum[order(av.depths.sum$Survey), ]
-D.sum <- as.numeric(av.depths.sum$depth) #create numeric variable for summer depth
-#for multiple variables
-BEdat.spr <- as.data.frame(av.depths.spr[, 3:12], row.names = as.character(av.depths.spr$Survey))
-BEdat.sum <- as.data.frame(av.depths.sum[, 3:12], row.names = as.character(av.depths.sum$Survey))
+BEdat.spr <- as.data.frame(av.depths.spr[, 3:ncol(av.depths.spr)], row.names = as.character(av.depths.spr$Survey))
+BEdat.sum <- as.data.frame(av.depths.sum[, 3:ncol(av.depths.sum)], row.names = as.character(av.depths.sum$Survey))
 ```
 
 ```{r check-correlation-between-env-variables}
 cor(BEdat.spr, method="spearman")
 cor(BEdat.sum, method="spearman")
+```
+
+```{r additional-test-datasets}
+P <- BEdat.spr[, c(4,5)] #create a pipeline only dataset
+C <- BEdat.spr[, c(7:15)] #create rainfall only dataset
+C <- C+min(C)
+C <- vegdist(C, method="euclidean") #create rainfall only similarity matrix
+C
 ```
 
 ```{r range-standardise-env-data}
@@ -382,13 +391,13 @@ for (i in 1:7){
 
 Ordination graph of Warden system waterbird communities by survey with surveys undertaken in summer scaled and coloured by average depth of gauged wetlands  
 ```{r summer-Warden-ord-plot-bydepths, include=TRUE}
-ggplot(Warden.sum.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.35, 0.3) + ylim(-0.2, 0.2) + coord_fixed(ratio = 1) + geom_point(aes(size = BEdat.sum.st$CDM6MO_MYRUP, colour=BEdat.sum.st$CDM6MO_MYRUP)) + scale_size(range = c(3, 12)) + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none")
+ggplot(Warden.sum.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.35, 0.3) + ylim(-0.2, 0.2) + coord_fixed(ratio = 1) + geom_point(aes(size = BEdat.sum.st$Depth, colour=BEdat.sum.st$Depth)) + scale_size(range = c(3, 12)) + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none")
 ```
 
 Ordination graph of Warden system waterbird communities by survey with surveys undertaken in spring scaled and coloured by average depth of gauged wetlands  
 ```{r spring-Warden-ord-plot-bydepths, include=TRUE}
 # note need to restrict both data matrix and average depths to just summer surveys
-ggplot(Warden.spr.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.3, 0.3) + ylim(-0.2, 0.25) + coord_fixed(ratio = 1) + geom_point(aes(size = D.spr, colour=D.spr)) + scale_size(range = c(3, 12)) + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none") + scale_x_reverse(limits=c(0.3, -0.3))
+ggplot(Warden.spr.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.3, 0.3) + ylim(-0.2, 0.25) + coord_fixed(ratio = 1) + geom_point(aes(size = BEdat.spr.st$Pipeline_days, colour = BEdat.spr.st$Pipeline_days)) + scale_size(range = c(3, 12)) + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none") + scale_x_reverse(limits=c(0.3, -0.3))
 ```
 
 Bio-env analysis to determine influence of depth on waterbrd communities on the Warden wetlands
@@ -409,12 +418,27 @@ Warden.sum.md <- vegdist(Warden.sum.m, method = "bray") #calculate Warden summer
 mantel(Warden.sum.md, Warden.sum.bed, method="spearman", permutations=999) #mantel test to determine permutational significance
 ```
 
+```{r using-bv.step-function}
+Warden.spr.bvs <- bv.step_ext(Warden.spr.m, BEdat.spr, fix.dist.method = "bray", var.dist.method = "euclidean", scale.fix=FALSE, scale.var=TRUE, max.rho=0.95, min.delta.rho=0.001)
+Warden.spr.bvs
+```
+
+
+
+
 ```{r environmental-ordination-best-vars-from-bioenv}
 Warden.env.spr.MDS <- metaMDS(Warden.spr.bed)
 Warden.env.spr.MDS.pts <- as.data.frame(Warden.env.spr.MDS$points) #extract coordinates from ordination
 Warden.env.spr.MDS.pts$Survey <- row.names(Warden.env.spr.MDS.pts)
 ggplot(Warden.env.spr.MDS.pts, aes(x=MDS2, y=MDS1)) + xlim(-5, 5) + ylim(-5, 5) + coord_fixed(ratio = 1) + geom_point(size=10) + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none")
 ```
+
+
+
+
+
+
+
 
 ```{r dbRDA-of-Warden-data}
 Warden.spr.dbrda <- capscale(Warden.spr.m ~ depth + Condition(pipeline), BEdat.spr, dist="bray")
