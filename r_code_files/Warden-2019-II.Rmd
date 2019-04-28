@@ -291,6 +291,8 @@ ttest.results
 ##WARDEN SYSTEM ANALYSIS ONLY  
 
 ###Ordinations and associated analyses
+
+Input waterbird data and split into spring and summer datasets, including creating a survey variable
 ```{r input_data_and_prepare_for_just_Warden_ordinations}
 input.data3 <- read.csv("./raw_data/Warden_Gore_by_suite_06_19.csv")
 Warden <- input.data3
@@ -308,11 +310,13 @@ Warden$Season <- factor(format(yq, "%q"), levels = 1:4, labels = c("summer", "au
   Warden.spr <- Warden[Warden$Season == "spring", ] #spring only data
 ```
 
+Create a matrix for checking counts - this not used in analysis
 ```{r create-two-way-table}
 Warden_matrix <- acast(Warden, CommonName~Survey, value.var="Count", fun.aggregate = sum) #sums counts for each species and survey
 write.csv(Warden_matrix, "./raw_data/Warden_matrix.csv")
 ```
 
+Aggregate count data by just common name and survey for creating matrices
 ```{r aggregate_count_data_by_Common_name_for_each_season}
 Warden.sum.agg <- aggregate(data=Warden.sum, Count ~ CommonName + Survey, FUN="sum") #aggregate count data by species and survey
 #Warden.sum.agg$Count <- sqrt(Warden.sum.agg$Count) removed sqrt because metaMDS routine in vegan transforms species abundance data is required.
@@ -320,6 +324,7 @@ Warden.spr.agg<- aggregate(data=Warden.spr, Count ~ CommonName + Survey, FUN="su
 #Warden.spr.agg$Count <- sqrt(Warden.spr.agg$Count) removed sqrt because metaMDS routine in vegan transforms species abundance data is required.
 ```
 
+Create waterbird matrices by season
 ```{r convert-Warden-only-data-to-seasonal-matrices}
 #summer
 Warden.sum.m <- melt(Warden.sum.agg)
@@ -343,6 +348,7 @@ Warden.sum.MDS <- metaMDS(Warden.sum.m, distance = "bray")
 Warden.spr.MDS <- metaMDS(Warden.spr.m, distance = "bray")
 ```
 
+Extract ordination point daat for ggplots
 ```{r extract-Warden-coords-for-plot}
 Warden.sum.MDS.pts <- as.data.frame(Warden.sum.MDS$points) #extract coordinates from ordination
 Warden.sum.MDS.pts$Survey <- row.names(Warden.sum.MDS.pts)
@@ -351,10 +357,15 @@ Warden.spr.MDS.pts$Survey <- row.names(Warden.spr.MDS.pts)
 #W.points$season <- c("spring","summer","summer","summer","summer","summer","summer","summer","spring","spring","spring","spring","spring","spring","spring","spring") # add season labels as new column in dataframe
 ```
 
+Load environmental data, extract pipeline operation days and create seasonal env matrices (for pipeline days only and for depth and other data)
 ```{r-load-env-data-split-by-season}
 av.depths <- read.csv("./raw_data/average depths.csv") #load data file with average depths (per survey) for gauged Warden wetlands plus other env data
 row.names(av.depths) <- av.depths$Survey
 av.depths <- av.depths[order(av.depths$Season, av.depths$Survey), ] #order alphabetically by season then survey
+Surv.spr <- av.depths[av.depths$Season == "Spring", "Days", drop=FALSE]
+Surv.sum <- av.depths[av.depths$Season == "Summer", "Days", drop=FALSE]
+Surv.Pipe.spr <- av.depths[av.depths$Season == "Spring", c("Pipeline_days","Days"), drop=FALSE]
+Surv.Pipe.sum <- av.depths[av.depths$Season == "Summer", c("Pipeline_days","Days"), drop=FALSE]
 Pipeline.spr <- av.depths[av.depths$Season == "Spring", "Pipeline_days", drop=FALSE]
 Pipeline.sum <- av.depths[av.depths$Season == "Summer", "Pipeline_days", drop=FALSE]
 av.depths$Pipeline_days <- NULL #remove pipeline data from av.depths
@@ -364,11 +375,13 @@ BEdat.sum <- av.depths[av.depths$Season == "Summer", 3:ncol(av.depths)] #restric
 row.names(BEdat.sum) <- row.names(av.depths[av.depths$Season == "Summer", ])
 ```
 
+Undertake correlations
 ```{r check-correlation-between-env-variables}
 cor(BEdat.spr, method="spearman")
 cor(BEdat.sum, method="spearman")
 ```
 
+Range standardise env data
 ```{r range-standardise-env-data}
 BEdat.spr.st <-BEdat.spr
 for (i in 1:ncol(BEdat.spr)){
@@ -391,18 +404,21 @@ Ordination graph of Warden system waterbird communities by survey with surveys u
 ggplot(Warden.spr.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.3, 0.3) + ylim(-0.2, 0.25) + coord_fixed(ratio = 1) + geom_point(aes(size = Pipeline.spr$Pipeline_days, colour = Pipeline.spr$Pipeline_days)) + scale_size(range = c(3, 12)) + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none") + scale_x_reverse(limits=c(0.3, -0.3))
 ```
 
-```{r create-matrix-for-Pipeline}
+Create euclidean distance matrices for datasets to be used to partial bioenv analysis
+```{r create-matrices-for-Pipeline}
 Pipeline.spr.m <-vegdist(Pipeline.spr, method="euclidean")
+Pipeline.sum.m <- vegdist(Pipeline.sum, method ="euclidean")
+Surv.spr.m <- vegdist(Surv.Pipe.spr$Days, method="euclidean")
+Surv.sum.m <- vegdist(Surv.Pipe.sum$Days, method="euclidean")
+Surv.Pipe.spr.m <- vegdist(Surv.Pipe.spr, method="euclidean")
+Surv.Pipe.sum.m <- vegdist(Surv.Pipe.sum, method="euclidean")
 ```
-
-
-
 
 Bio-env analysis to determine influence of pipeline operation, depth and rainfall on waterbrd communities on the Warden wetlands
 ```{r bio-env-Warden}
 #uses the multiple env variable dataset BEdat.spr and BEdat.sum rather than just the depth only datastet.
 #SPRING
-#Pipeline days only
+#Pipeline or Survey days only
 Warden.spr.be.P <- bioenv(Warden.spr.m, Pipeline.spr, method = "spearman", index = "bray", metric="euclidean")
 Warden.spr.be.P
 Warden.spr.md <- vegdist(Warden.spr.m, method = "bray") #calculate Warden spring waterbird bray-curtis dissimilarity index
@@ -414,8 +430,18 @@ Warden.spr.be #results of bio-env for spring
 Warden.spr.bed <- bioenvdist(Warden.spr.be, which = "best") #extract euclidean distance matrix for best set of env vars
 Warden.spr.md <- vegdist(Warden.spr.m, method = "bray") #calculate Warden spring waterbird bray-curtis dissimilarity index
 mantel(Warden.spr.md, Warden.spr.bed, method="spearman", permutations=999) #mantel test to determine permutational significance
+
+
+
 #SUMMER
-Warden.sum.be <- bioenv(Warden.sum.m, BEdat.sum, method = "spearman", index = "bray", metric="euclidean")
+#Pipeline or Survey days only
+Warden.sum.be.P <- bioenv(Warden.sum.m, Pipeline.sum, method = "spearman", index = "bray", metric="euclidean")
+Warden.sum.be.P
+Warden.sum.md <- vegdist(Warden.sum.m, method = "bray") #calculate Warden spring waterbird bray-curtis dissimilarity index
+mantel(Warden.sum.md, Pipeline.sum.m, method="spearman", permutations=999) #mantel test to determine permutational significance
+
+#other vars
+Warden.sum.be <- bioenv(Warden.sum.m, BEdat.sum, method = "spearman", index = "bray", metric="euclidean", partial = Pipeline.sum.m)
 Warden.sum.be
 Warden.sum.bed <- bioenvdist(Warden.sum.be, which = "best") #extract euclidean distance matrix for best set of env vars
 Warden.sum.md <- vegdist(Warden.sum.m, method = "bray") #calculate Warden summer waterbird bray-curtis dissimilarity index
