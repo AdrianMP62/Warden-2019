@@ -369,6 +369,8 @@ Surv.Pipe.sum <- av.depths[av.depths$Season == "Summer", c("Pipeline_days","Days
 Pipeline.spr <- av.depths[av.depths$Season == "Spring", "Pipeline_days", drop=FALSE]
 Pipeline.sum <- av.depths[av.depths$Season == "Summer", "Pipeline_days", drop=FALSE]
 av.depths$Pipeline_days <- NULL #remove pipeline data from av.depths
+av.depths$Days<-NULL
+av.depths$Month <- NULL
 BEdat.spr <- av.depths[av.depths$Season == "Spring", 3:ncol(av.depths)] #restrict av.depths to spring
 row.names(BEdat.spr) <- row.names(av.depths[av.depths$Season == "Spring", ])
 BEdat.sum <- av.depths[av.depths$Season == "Summer", 3:ncol(av.depths)] #restrict av.depths to summer
@@ -416,41 +418,19 @@ Surv.Pipe.sum.m <- vegdist(Surv.Pipe.sum, method="euclidean")
 
 Bio-env analysis to determine influence of pipeline operation, depth and rainfall on waterbrd communities on the Warden wetlands
 ```{r bio-env-Warden}
-#uses the multiple env variable dataset BEdat.spr and BEdat.sum rather than just the depth only datastet.
 #SPRING
-#Pipeline or Survey days only
-Warden.spr.be.P <- bioenv(Warden.spr.m, Pipeline.spr, method = "spearman", index = "bray", metric="euclidean")
+Warden.spr.be.P <- bioenv(Warden.spr.m, BEdat.spr, method = "pearson", index = "bray", metric="euclidean", partial = Pipeline.spr.m)
 Warden.spr.be.P
 Warden.spr.md <- vegdist(Warden.spr.m, method = "bray") #calculate Warden spring waterbird bray-curtis dissimilarity index
-mantel(Warden.spr.md, Pipeline.spr.m, method="spearman", permutations=999) #mantel test to determine permutational significance
-
-#other vars
-Warden.spr.be <- bioenv(Warden.spr.m, BEdat.spr, method = "spearman", index = "bray", metric="euclidean", partial = Pipeline.spr.m)
-Warden.spr.be #results of bio-env for spring
-Warden.spr.bed <- bioenvdist(Warden.spr.be, which = "best") #extract euclidean distance matrix for best set of env vars
-Warden.spr.md <- vegdist(Warden.spr.m, method = "bray") #calculate Warden spring waterbird bray-curtis dissimilarity index
-mantel(Warden.spr.md, Warden.spr.bed, method="spearman", permutations=999) #mantel test to determine permutational significance
-
-
+BEdat.spr.md <-bioenvdist(Warden.spr.be.P, which="best")
+mantel(Warden.spr.md, BEdat.spr.md, method="pearson", permutations=999) #mantel test to determine permutational significance
 
 #SUMMER
-#Pipeline or Survey days only
-Warden.sum.be.P <- bioenv(Warden.sum.m, Pipeline.sum, method = "spearman", index = "bray", metric="euclidean")
+Warden.sum.be.P <- bioenv(Warden.sum.m, BEdat.sum, method = "pearson", index = "bray", metric="euclidean")
 Warden.sum.be.P
 Warden.sum.md <- vegdist(Warden.sum.m, method = "bray") #calculate Warden spring waterbird bray-curtis dissimilarity index
-mantel(Warden.sum.md, Pipeline.sum.m, method="spearman", permutations=999) #mantel test to determine permutational significance
-
-#other vars
-Warden.sum.be <- bioenv(Warden.sum.m, BEdat.sum, method = "spearman", index = "bray", metric="euclidean", partial = Pipeline.sum.m)
-Warden.sum.be
-Warden.sum.bed <- bioenvdist(Warden.sum.be, which = "best") #extract euclidean distance matrix for best set of env vars
-Warden.sum.md <- vegdist(Warden.sum.m, method = "bray") #calculate Warden summer waterbird bray-curtis dissimilarity index
-mantel(Warden.sum.md, Warden.sum.bed, method="spearman", permutations=999) #mantel test to determine permutational significance
-```
-
-```{r using-bv.step-function}
-Warden.spr.bvs <- bv.step_ext(Warden.spr.m, BEdat.spr, fix.dist.method = "bray", var.dist.method = "euclidean", scale.fix=FALSE, scale.var=TRUE, max.rho=0.95, min.delta.rho=0.001)
-Warden.spr.bvs
+BEdat.sum.md <-bioenvdist(Warden.sum.be.P, which="best")
+mantel(Warden.sum.md, BEdat.sum.md, method="pearson", permutations=999) #mantel test to determine permutational significance
 ```
 
 
@@ -494,7 +474,7 @@ m <- ordistep(M.sum.0, scope=formula(M.sum.1), permutations=500) #stepwise model
 
 
 ```{r norm-norm-text}
-qqnorm(BEdat.sum$depth)
+qqnorm(BEdat.sum$Depth)
 ```
 
 
