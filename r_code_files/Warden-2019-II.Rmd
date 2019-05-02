@@ -435,6 +435,10 @@ BEdat.sum.md <-bioenvdist(Warden.sum.be.P, which="best")
 mantel(Warden.sum.md, BEdat.sum.md, method="pearson", permutations=999) #mantel test to determine permutational significance
 ```
 
+```{r norm-norm-text}
+qqnorm(BEdat.sum$Depth)
+```
+
 ```{r dbRDA-of-Warden-data}
 #spring
 mod1 <- capscale(Warden.spr.m ~ Pipeline_days, Surv.Pipe.spr, dist="bray") #test individual variables
@@ -457,11 +461,6 @@ anova(ind) #signif of stepwise model
 mod3 <- capscale(Warden.sum.m ~ CDM6MO_MYRUP, BEdat.sum, dist ="bray")
 mod3
 ```
-
-```{r norm-norm-text}
-qqnorm(BEdat.sum$Depth)
-```
-
 
 
 ###Stacked column plots for Warden system waterbirds
