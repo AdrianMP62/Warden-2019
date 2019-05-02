@@ -435,52 +435,28 @@ BEdat.sum.md <-bioenvdist(Warden.sum.be.P, which="best")
 mantel(Warden.sum.md, BEdat.sum.md, method="pearson", permutations=999) #mantel test to determine permutational significance
 ```
 
-```{r environmental-ordination-best-vars-from-bioenv}
-Warden.env.spr.MDS <- metaMDS(Warden.spr.bed)
-Warden.env.spr.MDS.pts <- as.data.frame(Warden.env.spr.MDS$points) #extract coordinates from ordination
-Warden.env.spr.MDS.pts$Survey <- row.names(Warden.env.spr.MDS.pts)
-ggplot(Warden.env.spr.MDS.pts, aes(x=MDS2, y=MDS1)) + xlim(-5, 5) + ylim(-5, 5) + coord_fixed(ratio = 1) + geom_point(size=10) + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none")
-```
-
-
 ```{r dbRDA-of-Warden-data}
 #spring
-BEdat.spr2 <- BEdat.spr #create new env dataset to include Pipeline_days
-BEdat.spr2$Pipeline_days <- Pipeline.spr$Pipeline_days
-Warden.spr.dbrda <- capscale(Warden.spr.m ~ . + Condition(Surv.Pipe.spr$Pipeline_days + Surv.Pipe.spr$Days), BEdat.spr, dist="bray") #Condition partials out Pipeline_days and Days
-#plot(Warden.spr.dbrda, display = c("wa", "bp", "sp"))
-Warden.spr.dbrda <-capscale(Warden.spr.m ~ CDM3MO_ESPER, BEdat.spr, dist="bray")
-Warden.spr.dbrda
-mod1 <- capscale(Warden.spr.m ~ CDM12MO_ESPER, BEdat.spr, dist="bray")
-mod0 <- capscale(Warden.spr.m ~ 1, BEdat.spr, dist="bray")
-
-mod1 <- capscale(Warden.spr.m ~ . + Condition(Surv.Pipe.spr$Pipeline_days + Surv.Pipe.spr$Days), BEdat.spr, dist="bray") #Condition partials out Pipeline_days
-mod0 <- capscale(Warden.spr.m ~1, BEdat.spr, dist="bray")
-Warden.spr.dbrda.step <- ordistep(mod0, scope = formula(mod1), perm.max = 999)
-Warden.spr.dbrda.model <- capscale(Warden.spr.m ~ Depth + CDM12MO_ESPER + CDM12MO_EAERO + Condition(Surv.Pipe.spr$Pipeline_days + Surv.Pipe.spr$Days), BEdat.spr, dist="bray") 
-Warden.spr.dbrda.model
-#Condition partials out Pipeline_days
-
-
+mod1 <- capscale(Warden.spr.m ~ Pipeline_days, Surv.Pipe.spr, dist="bray") #test individual variables
+mod1
+anova(mod1) #signif of individual variable
+mod2 <- capscale(Warden.spr.m ~ . + Condition(Surv.Pipe.spr$Pipeline_days), BEdat.spr, dist="bray") #full model
+mod0 <- capscale(Warden.spr.m ~ 1, BEdat.spr, dist="bray") #Null model
+ind <- ordistep(mod0, scope = formula(mod2), perm.max = 999) #stepwise model build from all
+anova(ind) #signif of stepwise model
+mod3 <- capscale(Warden.spr.m ~ CDM12MO_EAERO + CDM12MO_ESPER + Depth, BEdat.spr, dist ="bray") #model selected by ordistep
+anova(mod3) #signif or stepwise model
+mod3 #stepwise model
 #summer
-Warden.sum.dbrda <- capscale(Warden.sum.m ~ CDM3MO_ESPER + CDM6MO_MYRUP, BEdat.sum, dist="bray")
-Warden.sum.dbrda
-plot(Warden.sum.dbrda, display = c("wa", "bp", "sp"))
+mod1 <- capscale(Warden.sum.m ~ Depth, BEdat.sum, dist="bray") #test individual variables
+anova(mod1) #signif of individual variable
+mod2 <- capscale(Warden.sum.m ~ ., BEdat.sum, dist="bray") #full model
+mod0 <- capscale(Warden.sum.m ~ 1, BEdat.sum, dist="bray") #Null model
+ind <- ordistep(mod0, scope = formula(mod2), perm.max = 999) #stepwise model build from all
+anova(ind) #signif of stepwise model
+mod3 <- capscale(Warden.sum.m ~ CDM6MO_MYRUP, BEdat.sum, dist ="bray")
+mod3
 ```
-
-```{r stepwise-rda-model-building-spring}
-M.spr.1 <- capscale(Warden.spr.m ~ ., BEdat.spr, dist="bray") #create model with all parameters
-M.spr.0 <- capscale(Warden.spr.m ~ 1, BEdat.spr, dist="bray") #create model with no parameters
-m <- ordistep(M.spr.0, scope=formula(M.spr.1), permutations=500) #stepwise model build
-```
-
-```{r stepwise-rda-model-building-summer}
-M.sum.1 <- capscale(Warden.sum.m ~ ., BEdat.sum, dist="bray") #create model with all parameters
-M.sum.0 <- capscale(Warden.sum.m ~ 1, BEdat.sum, dist="bray") #create model with no parameters
-m <- ordistep(M.sum.0, scope=formula(M.sum.1), permutations=500) #stepwise model build
-```
-
-
 
 ```{r norm-norm-text}
 qqnorm(BEdat.sum$Depth)
