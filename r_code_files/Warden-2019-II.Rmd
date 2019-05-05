@@ -40,6 +40,7 @@ Packages <- c("vegan", "ggrepel", "ggplot2", "scales","lubridate", "stringr", "g
 lapply(Packages, library, character.only = TRUE)
 source("./functions/bio_env_ext.R") #The Bio_env and bv_step_ext routines below comes from http://menugget.blogspot.com.au/2011/06/clarke-and-ainsworths-bioenv-and-bvstep.html
 source("./functions/bv_step_ext.R")
+source("./functions/bv.step.R")
 ```
 
 #Analyses of waterbird data from the Warden and Gore Ramsar wetlands 2006 to 2019
@@ -69,11 +70,7 @@ write.csv(WG.bySeason, "./analysis_data/WG.bySeason.csv")
 
 ```{r aggregare-by-survey-and-species}
   WG.bySeason.agg <- aggregate(data=WG.bySeason, Count ~ CommonName + Survey + Season, FUN="sum") #sum data by common name and survey period
-  WG.bySeason.agg$Count <- sqrt(WG.bySeason.agg$Count) #convert counts to square root
 ```
-
-
-
 
 ```{r create-matrix-for-ordination}
   WG.bySeason.agg <- melt(WG.bySeason.agg) #melt data 
@@ -170,14 +167,12 @@ the Nov 2018 and Feb 2019 surveys are within the range of community compositions
   WG.bySystem$Survey <- gsub("Oct-2018", "Nov-2018", WG.bySystem$Survey) #lump survey dates that straddle Oct/Nov 2018
   yq <- as.yearqtr(as.yearmon(WG.bySystem$Date, "%Y/%m/%d"))
 WG.bySystem$Season <- factor(format(yq, "%q"), levels = 1:4, labels = c("summer", "autumn", "winter", "spring")) #create Season (spring vs summer) variable
-  WG.bySystem$Count <- sqrt(WG.bySystem$Count)
   WG.bySystem$Sys_Sur <- paste(WG.bySystem$System, WG.bySystem$Survey, sep = " ") # combine System and date to create one 'sample' variable for mds - i.e. combine system with season
 write.csv(WG.bySystem, "./WG.bySystem.csv")
 ```
 
 ```{r aggregate-by-Common-Name}
 WG.bySystem.agg <- aggregate(data=WG.bySystem, Count ~ CommonName + Sys_Sur, FUN="sum")
-WG.bySystem.agg$Count <- sqrt(as.numeric(WG.bySystem.agg$Count))
 ```
 
 ```{r create_matrix_for_ordaniation}
@@ -190,7 +185,7 @@ rownames(WG.bySystem.m) <- WG.bySystem.m[,1]
 
 MDS unconstrained ordination using metaMDS in package vegan to compare Warden and Gore wetland systems
 ```{r ordination-by-system}
-WG.MDS.bySyst <- metaMDS(WG.bySystem.m, distance = "bray", transform="false")
+WG.MDS.bySyst <- metaMDS(WG.bySystem.m, distance = "bray")
 ```
 
 ```{r extract-coordinates-from-nMDS-and-add-season-to-resulting-data.frame-for-Warden-versus-Gore-analysis}
@@ -344,11 +339,11 @@ Warden.spr.m <- read.csv("./analysis_data/Warden_spr_m.csv", row.names=1)
 
 MDS unconstrained ordination using metaMDS in package vegan to analyse effects of season within the Warden system
 ```{r 2D-ordinations-Warden-only}
-Warden.sum.MDS <- metaMDS(Warden.sum.m, distance = "bray")
-Warden.spr.MDS <- metaMDS(Warden.spr.m, distance = "bray")
+Warden.sum.MDS <- metaMDS(Warden.sum.m, distance = "bray", autotransform = TRUE)
+Warden.spr.MDS <- metaMDS(Warden.spr.m, distance = "bray", autotransform = TRUE)
 ```
 
-Extract ordination point daat for ggplots
+Extract ordination point data for ggplots
 ```{r extract-Warden-coords-for-plot}
 Warden.sum.MDS.pts <- as.data.frame(Warden.sum.MDS$points) #extract coordinates from ordination
 Warden.sum.MDS.pts$Survey <- row.names(Warden.sum.MDS.pts)
@@ -404,13 +399,13 @@ Pipeline.sum$Pipeline_days_st <- rescale(Pipeline.sum$Pipeline_days, to = c(0,1)
 
 Ordination graph of Warden system waterbird communities by survey with surveys undertaken in summer scaled and coloured by average depth of gauged wetlands  
 ```{r summer-Warden-ord-plot-bydepths, include=TRUE}
-ggplot(Warden.sum.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.35, 0.3) + ylim(-0.2, 0.2) + coord_fixed(ratio = 1) + geom_point(aes(size = BEdat.sum.st$Depth, colour=BEdat.sum.st$Depth)) + scale_size(range = c(3, 12)) + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none")
+ggplot(Warden.sum.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.7, 0.7) + ylim(-0.7, 0.7) + coord_fixed(ratio = 1) + geom_point(aes(size = BEdat.sum.st$Depth, colour=BEdat.sum.st$Depth)) + scale_size(range = c(3, 12)) + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none")
 ```
 
 Ordination graph of Warden system waterbird communities by survey with surveys undertaken in spring scaled and coloured by average depth of gauged wetlands  
 ```{r spring-Warden-ord-plot-bydepths, include=TRUE}
 # note need to restrict both data matrix and average depths to just summer surveys
-ggplot(Warden.spr.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.3, 0.3) + ylim(-0.2, 0.25) + coord_fixed(ratio = 1) + geom_point(aes(size = Pipeline.spr$Pipeline_days, colour = Pipeline.spr$Pipeline_days)) + scale_size(range = c(3, 12)) + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none") + scale_x_reverse(limits=c(0.3, -0.3))
+ggplot(Warden.spr.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.7, 0.7) + ylim(-0.7, 0.7) + coord_fixed(ratio = 1) + geom_point(aes(size = BEdat.spr$Depth, colour = BEdat.spr$Depth)) + scale_size(range = c(3, 12)) + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none") + scale_x_reverse(limits=c(0.7, -0.7))
 ```
 
 Create euclidean distance matrices for datasets to be used to partial bioenv analysis
@@ -441,9 +436,25 @@ BEdat.sum.md <-bioenvdist(Warden.sum.be.P, which="best")
 mantel(Warden.sum.md, BEdat.sum.md, method="pearson", permutations=999) #mantel test to determine permutational significance
 ```
 
-```{r norm-norm-text}
-qqnorm(BEdat.sum$Depth)
+###Bio-env analysis to determine which species best match patterns in overall community ordination
+```{r}
+Warden.spr.msq <- sqrt(Warden.spr.m)
+Warden.spr.bio <- bv.step(Warden.spr.msq, Warden.spr.msq, scale.fix=FALSE, scale.var=FALSE, fix.dist.method = "bray", var.dist.method = "bray", max.rho=0.95, min.delta.rho=0.01, output.best=10, num.restarts = 100)
+Warden.spr.bio
+warnings()
+Warden.spr.md <- vegdist(Warden.spr.m, method = "bray") #calculate Warden spring waterbird bray-curtis dissimilarity index
+BEdat.spr.md <-bioenvdist(Warden.spr.be.P, which="best")
+mantel(Warden.spr.md, BEdat.spr.md, method="pearson", permutations=999) #mantel test to determine permutational significance
 ```
+
+```{r add-8-species-to-spring-ordination-as-vectors}
+spring.species <- c("Australian.Shelduck","Banded.Stilt","Grey.Teal","Pacific.Black.Duck","Red.necked.Stint","Silver.Gull","Straw.necked.Ibis")
+Warden.sprsp.m <- Warden.spr.msq[, spring.species] #spring only data
+fit <- envfit(Warden.spr.MDS, Warden.sprsp.m, permutations = 999, choices=c(1,2))
+plot(Warden.spr.MDS, display="sites", type = "t")
+plot(fit)
+```
+
 
 ```{r dbRDA-of-Warden-data}
 #spring
