@@ -373,8 +373,13 @@ av.depths$Days<-NULL
 av.depths$Month <- NULL
 BEdat.spr <- av.depths[av.depths$Season == "Spring", 3:ncol(av.depths)] #restrict av.depths to spring
 row.names(BEdat.spr) <- row.names(av.depths[av.depths$Season == "Spring", ])
+BEdat.spr2 <- BEdat.spr #copy env data for spring
+BEdat.spr2$Pipeline_days <- Pipeline.spr$Pipeline_days #add spring pipeline data 
 BEdat.sum <- av.depths[av.depths$Season == "Summer", 3:ncol(av.depths)] #restrict av.depths to summer
 row.names(BEdat.sum) <- row.names(av.depths[av.depths$Season == "Summer", ])
+BEdat.sum2 <- BEdat.sum #copy env data for spring
+BEdat.sum2$Pipeline_days <- Pipeline.sum$Pipeline_days #add spring pipeline data 
+
 ```
 
 Undertake correlations
@@ -416,19 +421,20 @@ Surv.spr.m <- vegdist(Surv.Pipe.spr$Days, method="euclidean")
 Surv.sum.m <- vegdist(Surv.Pipe.sum$Days, method="euclidean")
 Surv.Pipe.spr.m <- vegdist(Surv.Pipe.spr, method="euclidean")
 Surv.Pipe.sum.m <- vegdist(Surv.Pipe.sum, method="euclidean")
+add dummy variable to Pipeline_days
 ```
 
 Bio-env analysis to determine influence of pipeline operation, depth and rainfall on waterbrd communities on the Warden wetlands. Uses pearson correlation because env vars without major outliers and not too far off normal in qqnorm plots.
 ```{r bio-env-Warden}
 #SPRING
-Warden.spr.be.P <- bioenv(Warden.spr.m, BEdat.spr, method = "pearson", index = "bray", metric="euclidean", partial = Pipeline.spr.m)
+Warden.spr.be.P <- bioenv(Warden.spr.m, BEdat.spr2, method = "pearson", index = "bray", metric="euclidean")
 Warden.spr.be.P
 Warden.spr.md <- vegdist(Warden.spr.m, method = "bray") #calculate Warden spring waterbird bray-curtis dissimilarity index
 BEdat.spr.md <-bioenvdist(Warden.spr.be.P, which="best")
 mantel(Warden.spr.md, BEdat.spr.md, method="pearson", permutations=999) #mantel test to determine permutational significance
 
 #SUMMER
-Warden.sum.be.P <- bioenv(Warden.sum.m, BEdat.sum, method = "pearson", index = "bray", metric="euclidean")
+Warden.sum.be.P <- bioenv(Warden.sum.m, BEdat.sum2, method = "pearson", index = "bray", metric="euclidean")
 Warden.sum.be.P
 Warden.sum.md <- vegdist(Warden.sum.m, method = "bray") #calculate Warden spring waterbird bray-curtis dissimilarity index
 BEdat.sum.md <-bioenvdist(Warden.sum.be.P, which="best")
@@ -441,16 +447,18 @@ qqnorm(BEdat.sum$Depth)
 
 ```{r dbRDA-of-Warden-data}
 #spring
-mod1 <- capscale(Warden.spr.m ~ Pipeline_days, Surv.Pipe.spr, dist="bray") #test individual variables
+mod1 <- capscale(Warden.spr.m ~ xxxxxxxx, BEdat.spr, dist="bray") #test individual variables (use BEdat.spr2 to include Pipeline_days
 mod1
 anova(mod1) #signif of individual variable
-mod2 <- capscale(Warden.spr.m ~ . + Condition(Surv.Pipe.spr$Pipeline_days), BEdat.spr, dist="bray") #full model
-mod0 <- capscale(Warden.spr.m ~ 1, BEdat.spr, dist="bray") #Null model
+#stepwise model procedure without 'pipeline' data
+mod2 <- capscale(Warden.spr.m ~ ., BEdat.spr2, dist="bray") #full model
+mod0 <- capscale(Warden.spr.m ~ 1, BEdat.spr2, dist="bray") #Null model
 ind <- ordistep(mod0, scope = formula(mod2), perm.max = 999) #stepwise model build from all
 anova(ind) #signif of stepwise model
-mod3 <- capscale(Warden.spr.m ~ CDM12MO_EAERO + CDM12MO_ESPER + Depth, BEdat.spr, dist ="bray") #model selected by ordistep
+mod3 <- capscale(Warden.spr.m ~ CDM12MO_ESPER + Pipeline_days, BEdat.spr2, dist ="bray") #model selected by ordistep
 anova(mod3) #signif or stepwise model
 mod3 #stepwise model
+
 #summer
 mod1 <- capscale(Warden.sum.m ~ Depth, BEdat.sum, dist="bray") #test individual variables
 anova(mod1) #signif of individual variable
@@ -461,6 +469,65 @@ anova(ind) #signif of stepwise model
 mod3 <- capscale(Warden.sum.m ~ CDM6MO_MYRUP, BEdat.sum, dist ="bray")
 mod3
 ```
+
+### test whether pipeline is still a factor when Lake Warden data removed
+Create a Warden matrix without Lake Warden data
+```{r}
+Warden.spr.NoWa <- Warden.spr[-grep("WRP013", Warden.spr$SiteCode), ] #remove records for Lake Warden
+Warden.spr.NoWa.agg<- aggregate(data=Warden.spr.NoWa, Count ~ CommonName + Survey, FUN="sum")
+Warden.spr.NoWa.m <- melt(Warden.spr.NoWa.agg)
+Warden.spr.NoWa.m <- dcast(Warden.spr.NoWa.m, Survey ~ CommonName, fill="0")
+rownames(Warden.spr.NoWa.m) <- Warden.spr.NoWa.m[,1]
+Warden.spr.NoWa.m[,1] <- NULL
+write.csv(Warden.spr.NoWa.m, "./analysis_data/Warden_spr_NoWa_m.csv")
+Warden.spr.NoWa.m <- read.csv("./analysis_data/Warden_spr_NoWa_m.csv", row.names=1)
+```
+
+Create a warden matrix of just Lake Warden
+```{r}
+Warden.spr.Wa <- Warden.spr[Warden.spr$SiteCode == "WRP013", ] #include only records for Lake Warden
+Warden.spr.Wa.agg<- aggregate(data=Warden.spr.Wa, Count ~ CommonName + Survey, FUN="sum")
+Warden.spr.Wa.m <- melt(Warden.spr.Wa.agg)
+Warden.spr.Wa.m <- dcast(Warden.spr.Wa.m, Survey ~ CommonName, fill="0")
+rownames(Warden.spr.Wa.m) <- Warden.spr.Wa.m[,1]
+Warden.spr.Wa.m[,1] <- NULL
+write.csv(Warden.spr.Wa.m, "./analysis_data/Warden_spr_NoWa_m.csv")
+Warden.spr.Wa.m <- read.csv("./analysis_data/Warden_spr_NoWa_m.csv", row.names=1)
+Warden.spr.Wa.md <- vegdist(Warden.spr.Wa.m, method = "bray")
+write.csv(as.matrix(Warden.spr.Wa.md), file = "Warden_spr_Wa_md.csv")
+  ```
+
+Bioenv without Lake Warden
+```{r bioenv-n-Lake-Warden-data}
+Warden.spr.NoWa.be <- bioenv(Warden.spr.NoWa.m, Pipeline.spr, method = "pearson", index = "bray", metric="euclidean")
+Warden.spr.NoWa.be
+Warden.spr.NoWa.md <- vegdist(Warden.spr.NoWa.m, method = "bray") #calculate Warden spring waterbird bray-curtis dissimilarity index
+Pipeline.NoWa.be.m <-bioenvdist(Warden.spr.NoWa.be, which="best")
+mantel(Warden.spr.NoWa.md, Pipeline.NoWa.be.m, method="pearson", permutations=999) #mantel test to determine permutational significance
+```
+
+db-RDA without lake Warden
+```{r}
+mod2 <- capscale(Warden.spr.NoWa.m ~ ., BEdat.spr2, dist="bray") #full model
+mod0 <- capscale(Warden.spr.NoWa.m ~ 1, BEdat.spr2, dist="bray") #Null model
+ind <- ordistep(mod0, scope = formula(mod2), perm.max = 999) #stepwise model build from all
+anova(ind) #signif of stepwise model
+mod3 <- capscale(Warden.spr.NoWa.m ~ Pipeline_days, BEdat.spr2, dist ="bray") #model selected by ordistep
+anova(mod3) #signif or stepwise model
+mod3 #stepwise model
+```
+
+```{r}
+mean <- mean(Warden.spr.NoWa.md)
+mean
+write.csv(as.matrix(Warden.spr.NoWa.md), file = "Warden_spr_NoWa_md.csv") 
+```
+
+
+
+
+
+
 
 
 ###Stacked column plots for Warden system waterbirds
