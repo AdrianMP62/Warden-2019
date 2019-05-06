@@ -438,13 +438,14 @@ mantel(Warden.sum.md, BEdat.sum.md, method="pearson", permutations=999) #mantel 
 
 ###Bio-env analysis to determine which species best match patterns in overall community ordination
 ```{r}
-Warden.spr.msq <- sqrt(Warden.spr.m)
+Warden.spr.msq <- sqrt(Warden.spr.m) #sqrt dataset since bv.step (as opposed to bvstep) does not do this, but needs to be done for consistency.
 Warden.spr.bio <- bv.step(Warden.spr.msq, Warden.spr.msq, scale.fix=FALSE, scale.var=FALSE, fix.dist.method = "bray", var.dist.method = "bray", max.rho=0.95, min.delta.rho=0.01, output.best=10, num.restarts = 100)
 Warden.spr.bio
-warnings()
-Warden.spr.md <- vegdist(Warden.spr.m, method = "bray") #calculate Warden spring waterbird bray-curtis dissimilarity index
-BEdat.spr.md <-bioenvdist(Warden.spr.be.P, which="best")
-mantel(Warden.spr.md, BEdat.spr.md, method="pearson", permutations=999) #mantel test to determine permutational significance
+#note: warnings are not important, see http://menugget.blogspot.com/2011/06/clarke-and-ainsworths-bioenv-and-bvstep.html
+Warden.spr8 <- Warden.spr.m[, spring.species] # create new survey x specie matrix with the 8 species from the bv.step analysis
+Warden.spr8.m <- vegdist(sqrt(Warden.spr8), method= "bray") #create dissimilarity matrix for just 8 species, for use in mantel tests
+Warden.spr.md <- vegdist(sqrt(Warden.spr.m), method = "bray") #calculate Warden spring 
+mantel(Warden.spr.md, Warden.spr8.m, method="pearson", permutations=999) #mantel test to determine permutational significance
 ```
 
 ```{r add-8-species-to-spring-ordination-as-vectors}
@@ -454,7 +455,6 @@ fit <- envfit(Warden.spr.MDS, Warden.sprsp.m, permutations = 999, choices=c(1,2)
 plot(Warden.spr.MDS, display="sites", type = "t")
 plot(fit)
 ```
-
 
 ```{r dbRDA-of-Warden-data}
 #spring
