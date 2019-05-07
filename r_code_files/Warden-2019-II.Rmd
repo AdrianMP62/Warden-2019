@@ -311,7 +311,7 @@ Warden_matrix <- acast(Warden, CommonName~Survey, value.var="Count", fun.aggrega
 write.csv(Warden_matrix, "./raw_data/Warden_matrix.csv")
 ```
 
-Aggregate count data by just common name and survey for creating matrices
+Aggregate count data by just common name and survey for creating season matrices
 ```{r aggregate_count_data_by_Common_name_for_each_season}
 Warden.sum.agg <- aggregate(data=Warden.sum, Count ~ CommonName + Survey, FUN="sum") #aggregate count data by species and survey
 #Warden.sum.agg$Count <- sqrt(Warden.sum.agg$Count) removed sqrt because metaMDS routine in vegan transforms species abundance data is required.
@@ -377,7 +377,7 @@ BEdat.sum2$Pipeline_days <- Pipeline.sum$Pipeline_days #add spring pipeline data
 
 ```
 
-Undertake correlations
+Produce environmental data correlation matrices
 ```{r check-correlation-between-env-variables}
 cor(BEdat.spr, method="pearson")
 cor(BEdat.sum, method="pearson")
@@ -435,8 +435,9 @@ BEdat.sum.md <-bioenvdist(Warden.sum.be.P, which="best")
 mantel(Warden.sum.md, BEdat.sum.md, method="pearson", permutations=999) #mantel test to determine permutational significance
 ```
 
-###Bio-env analysis to determine which species best match patterns in overall community ordination
+Bio-env analysis to determine which species best match patterns in overall community ordination
 ```{r}
+#spring
 Warden.spr.msq <- sqrt(Warden.spr.m) #sqrt dataset since bv.step (as opposed to bvstep) does not do this, but needs to be done for consistency.
 Warden.spr.bio <- bv.step(Warden.spr.msq, Warden.spr.msq, scale.fix=FALSE, scale.var=FALSE, fix.dist.method = "bray", var.dist.method = "bray", max.rho=0.95, min.delta.rho=0.01, output.best=10, num.restarts = 100)
 Warden.spr.bio
@@ -446,18 +447,22 @@ write.csv(Warden.spr8, "Warden 8 species.csv")
 Warden.spr8.m <- vegdist(sqrt(Warden.spr8), method= "bray") #create dissimilarity matrix for just 8 species, for use in mantel tests
 Warden.spr.md <- vegdist(sqrt(Warden.spr.m), method = "bray") #calculate Warden spring 
 mantel(Warden.spr.md, Warden.spr8.m, method="pearson", permutations=999) #mantel test to determine permutational significance
+#summer
+
+
+
 ```
 
 ```{r add-8-species-to-spring-ordination-as-vectors}
 spring.species <- c("Australian.Shelduck","Banded.Stilt","Grey.Teal","Pacific.Black.Duck","Red.necked.Stint","Silver.Gull","Straw.necked.Ibis")
-Warden.sprsp.m <- Warden.spr.msq[, spring.species] #spring only data
-fit <- envfit(Warden.spr.MDS, Warden.sprsp.m, permutations = 999, choices=c(1,2))
-Warden.arrows.spr <-as.data.frame(fit$vectors$arrows*sqrt(fit$vectors$r))
-Warden.arrows.spr$Species <- row.names(Warden.arrows.spr)
+Warden.sprsp.m <- Warden.spr.msq[, spring.species] #extract just the 8 species for spring
+fit <- envfit(Warden.spr.MDS, Warden.sprsp.m, permutations = 999, choices=c(1,2)) #fit these species as vectors in unconstrained ordination
+Warden.arrows.spr <-as.data.frame(fit$vectors$arrows*sqrt(fit$vectors$r)) #extract vector coordinates
+Warden.arrows.spr$Species <- row.names(Warden.arrows.spr) #add species names to vectors
 
+fit.env <- envfit(Warden.spr.MDS, input env data
 
-
-plot(Warden.spr.MDS, display="sites", type = "t", ylim= c(-5, 5), xlim=rev(c(-0.2, 0.2)))
+plot(Warden.spr.MDS, display="sites", type = "t", ylim= c(-1, 5), xlim=rev(c(-0.2, 0.2)))
 plot(fit)
 
 ggplot(Warden.spr.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.8, 0.6) + ylim(-0.6, 0.6) + coord_fixed(ratio = 1) + geom_point(aes(size = 2)) + geom_text(aes(label = Survey), colour="blue", cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none") + scale_x_reverse(limits=c(0.6, -0.8)) + geom_segment(data=Warden.arrows.spr,aes(x=0,xend=NMDS1,y=0,yend=NMDS2), arrow = arrow(length = unit(0.5, "cm")),colour="grey",inherit_aes=FALSE) + geom_text(data=Warden.arrows.spr,aes(x=NMDS1,y=NMDS2,label=Species),size=3)
@@ -468,6 +473,7 @@ ggplot(Warden.spr.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.8, 0.6) + ylim(-0.6, 0
 #see https://stackoverflow.com/questions/14711470/plotting-envfit-vectors-vegan-package-in-ggplot2 for adding vectors to ggplot ordination
 ```
 
+db-RDA analyses including extended plotting
 ```{r dbRDA-of-Warden-data}
 #spring
 mod1 <- capscale(Warden.spr.m ~ xxxxxxxx, BEdat.spr, dist="bray") #test individual variables (use BEdat.spr2 to include Pipeline_days
@@ -478,9 +484,16 @@ mod2 <- capscale(Warden.spr.m ~ ., BEdat.spr2, dist="bray") #full model
 mod0 <- capscale(Warden.spr.m ~ 1, BEdat.spr2, dist="bray") #Null model
 ind <- ordistep(mod0, scope = formula(mod2), perm.max = 999) #stepwise model build from all
 anova(ind) #signif of stepwise model
-mod3 <- capscale(Warden.spr.m ~ CDM12MO_ESPER + Pipeline_days, BEdat.spr2, dist ="bray") #model selected by ordistep
-anova(mod3) #signif or stepwise model
+mod3 <- capscale(Warden.spr.m ~ CDM12MO_ESPER + CDM12MO_EAERO + Depth, BEdat.spr, dist ="bray") #model selected by ordistep
 mod3 #stepwise model
+anova(mod3) #signif or stepwise model
+#build db-RDA plot from components
+plot(mod3, type = "n", choices = c(1, 2))
+points(mod3, display = "sites", pch=16, cex=Warden.sprsp.m$Straw.necked.Ibis^2/50, col="grey") #scale sites by abundances of the 8 species
+text(mod3, display = "sites", cex = 0.7)
+points(mod3, display = "bp", cex=2)
+text(mod3, display = "bp", cex=0.7, col="blue")
+
 
 #summer
 mod1 <- capscale(Warden.sum.m ~ Depth, BEdat.sum, dist="bray") #test individual variables
@@ -540,12 +553,10 @@ anova(mod3) #signif or stepwise model
 mod3 #stepwise model
 ```
 
+Fit vectors from the env variables identified in the db-RDA and bio-env analysis on a plot of the constrained ordination with symbols scaled to each of the 8 species identified in the bio-bio bv.step analysis
 ```{r}
-mean <- mean(Warden.spr.NoWa.md)
-mean
-write.csv(as.matrix(Warden.spr.NoWa.md), file = "Warden_spr_NoWa_md.csv") 
-```
 
+```
 
 
 
