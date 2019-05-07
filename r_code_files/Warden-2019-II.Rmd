@@ -36,7 +36,7 @@ set.seed(1234)
 ```
 
 ```{r load-packages, results="hide", warning=FALSE, message=FALSE}
-Packages <- c("vegan", "ggrepel", "ggplot2", "scales","lubridate", "stringr", "gsubfn", "reshape2", "knitr", "simba", "zoo", "car")
+Packages <- c("vegan", "ggrepel", "grid", "ggplot2", "scales","lubridate", "stringr", "gsubfn", "reshape2", "knitr", "simba", "zoo", "car")
 lapply(Packages, library, character.only = TRUE)
 source("./functions/bio_env_ext.R") #The Bio_env and bv_step_ext routines below comes from http://menugget.blogspot.com.au/2011/06/clarke-and-ainsworths-bioenv-and-bvstep.html
 source("./functions/bv_step_ext.R")
@@ -405,7 +405,7 @@ ggplot(Warden.sum.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.7, 0.7) + ylim(-0.7, 0
 Ordination graph of Warden system waterbird communities by survey with surveys undertaken in spring scaled and coloured by average depth of gauged wetlands  
 ```{r spring-Warden-ord-plot-bydepths, include=TRUE}
 # note need to restrict both data matrix and average depths to just summer surveys
-ggplot(Warden.spr.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.7, 0.7) + ylim(-0.7, 0.7) + coord_fixed(ratio = 1) + geom_point(aes(size = BEdat.spr$Depth, colour = BEdat.spr$Depth)) + scale_size(range = c(3, 12)) + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none") + scale_x_reverse(limits=c(0.7, -0.7))
+ggplot(Warden.spr.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.3, 0.3) + ylim(-0.3, 0.3) + coord_fixed(ratio = 1) + geom_point(aes(size = Warden.spr.m$Australian.Shelduck, colour = Warden.spr.m$Australian.Shelduck)) + scale_size(range = c(3, 12)) + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none") + scale_x_reverse(limits=c(0.3, -0.3))
 ```
 
 Create euclidean distance matrices for datasets to be used to partial bioenv analysis
@@ -416,7 +416,6 @@ Surv.spr.m <- vegdist(Surv.Pipe.spr$Days, method="euclidean")
 Surv.sum.m <- vegdist(Surv.Pipe.sum$Days, method="euclidean")
 Surv.Pipe.spr.m <- vegdist(Surv.Pipe.spr, method="euclidean")
 Surv.Pipe.sum.m <- vegdist(Surv.Pipe.sum, method="euclidean")
-add dummy variable to Pipeline_days
 ```
 
 Bio-env analysis to determine influence of pipeline operation, depth and rainfall on waterbrd communities on the Warden wetlands. Uses pearson correlation because env vars without major outliers and not too far off normal in qqnorm plots.
@@ -443,6 +442,7 @@ Warden.spr.bio <- bv.step(Warden.spr.msq, Warden.spr.msq, scale.fix=FALSE, scale
 Warden.spr.bio
 #note: warnings are not important, see http://menugget.blogspot.com/2011/06/clarke-and-ainsworths-bioenv-and-bvstep.html
 Warden.spr8 <- Warden.spr.m[, spring.species] # create new survey x specie matrix with the 8 species from the bv.step analysis
+write.csv(Warden.spr8, "Warden 8 species.csv")
 Warden.spr8.m <- vegdist(sqrt(Warden.spr8), method= "bray") #create dissimilarity matrix for just 8 species, for use in mantel tests
 Warden.spr.md <- vegdist(sqrt(Warden.spr.m), method = "bray") #calculate Warden spring 
 mantel(Warden.spr.md, Warden.spr8.m, method="pearson", permutations=999) #mantel test to determine permutational significance
@@ -452,8 +452,20 @@ mantel(Warden.spr.md, Warden.spr8.m, method="pearson", permutations=999) #mantel
 spring.species <- c("Australian.Shelduck","Banded.Stilt","Grey.Teal","Pacific.Black.Duck","Red.necked.Stint","Silver.Gull","Straw.necked.Ibis")
 Warden.sprsp.m <- Warden.spr.msq[, spring.species] #spring only data
 fit <- envfit(Warden.spr.MDS, Warden.sprsp.m, permutations = 999, choices=c(1,2))
-plot(Warden.spr.MDS, display="sites", type = "t")
+Warden.arrows.spr <-as.data.frame(fit$vectors$arrows*sqrt(fit$vectors$r))
+Warden.arrows.spr$Species <- row.names(Warden.arrows.spr)
+
+
+
+plot(Warden.spr.MDS, display="sites", type = "t", ylim= c(-5, 5), xlim=rev(c(-0.2, 0.2)))
 plot(fit)
+
+ggplot(Warden.spr.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.8, 0.6) + ylim(-0.6, 0.6) + coord_fixed(ratio = 1) + geom_point(aes(size = 2)) + geom_text(aes(label = Survey), colour="blue", cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none") + scale_x_reverse(limits=c(0.6, -0.8)) + geom_segment(data=Warden.arrows.spr,aes(x=0,xend=NMDS1,y=0,yend=NMDS2), arrow = arrow(length = unit(0.5, "cm")),colour="grey",inherit_aes=FALSE) + geom_text(data=Warden.arrows.spr,aes(x=NMDS1,y=NMDS2,label=Species),size=3)
+
+
+
+
+#see https://stackoverflow.com/questions/14711470/plotting-envfit-vectors-vegan-package-in-ggplot2 for adding vectors to ggplot ordination
 ```
 
 ```{r dbRDA-of-Warden-data}
