@@ -287,7 +287,7 @@ ttest.results
 
 ###Ordinations and associated analyses
 
-Input waterbird data and split into spring and summer datasets, including creating a survey variable
+####Input waterbird data and split into spring and summer datasets, including creating a survey variable
 ```{r input_data_and_prepare_for_just_Warden_ordinations}
 input.data3 <- read.csv("./raw_data/Warden_Gore_by_suite_06_19.csv")
 Warden <- input.data3
@@ -305,13 +305,13 @@ Warden$Season <- factor(format(yq, "%q"), levels = 1:4, labels = c("summer", "au
   Warden.spr <- Warden[Warden$Season == "spring", ] #spring only data
 ```
 
-Create a matrix for checking counts - this not used in analysis
+####Create a matrix for checking counts - this not used in analysis
 ```{r create-two-way-table}
 Warden_matrix <- acast(Warden, CommonName~Survey, value.var="Count", fun.aggregate = sum) #sums counts for each species and survey
 write.csv(Warden_matrix, "./raw_data/Warden_matrix.csv")
 ```
 
-Aggregate count data by just common name and survey for creating season matrices
+####Aggregate count data by just common name and survey for creating season matrices
 ```{r aggregate_count_data_by_Common_name_for_each_season}
 Warden.sum.agg <- aggregate(data=Warden.sum, Count ~ CommonName + Survey, FUN="sum") #aggregate count data by species and survey
 #Warden.sum.agg$Count <- sqrt(Warden.sum.agg$Count) removed sqrt because metaMDS routine in vegan transforms species abundance data is required.
@@ -319,7 +319,7 @@ Warden.spr.agg<- aggregate(data=Warden.spr, Count ~ CommonName + Survey, FUN="su
 #Warden.spr.agg$Count <- sqrt(Warden.spr.agg$Count) removed sqrt because metaMDS routine in vegan transforms species abundance data is required.
 ```
 
-Create waterbird matrices by season
+####Create waterbird matrices by season
 ```{r convert-Warden-only-data-to-seasonal-matrices}
 #summer
 Warden.sum.m <- melt(Warden.sum.agg)
@@ -337,13 +337,13 @@ write.csv(Warden.spr.m, "./analysis_data/Warden_spr_m.csv")
 Warden.spr.m <- read.csv("./analysis_data/Warden_spr_m.csv", row.names=1)
 ```
 
-MDS unconstrained ordination using metaMDS in package vegan to analyse effects of season within the Warden system
+####MDS unconstrained ordination using metaMDS in package vegan to analyse effects of season within the Warden system
 ```{r 2D-ordinations-Warden-only}
 Warden.sum.MDS <- metaMDS(Warden.sum.m, distance = "bray", autotransform = TRUE)
 Warden.spr.MDS <- metaMDS(Warden.spr.m, distance = "bray", autotransform = TRUE)
 ```
 
-Extract ordination point data for ggplots
+####Extract ordination point data for ggplots
 ```{r extract-Warden-coords-for-plot}
 Warden.sum.MDS.pts <- as.data.frame(Warden.sum.MDS$points) #extract coordinates from ordination
 Warden.sum.MDS.pts$Survey <- row.names(Warden.sum.MDS.pts)
@@ -352,7 +352,7 @@ Warden.spr.MDS.pts$Survey <- row.names(Warden.spr.MDS.pts)
 #W.points$season <- c("spring","summer","summer","summer","summer","summer","summer","summer","spring","spring","spring","spring","spring","spring","spring","spring") # add season labels as new column in dataframe
 ```
 
-Load environmental data, extract pipeline operation days and create seasonal env matrices (for pipeline days only and for depth and other data)
+####Load environmental data, extract pipeline operation days and create seasonal env matrices (for pipeline days only and for depth and other data)
 ```{r-load-env-data-split-by-season}
 av.depths <- read.csv("./raw_data/average depths.csv") #load data file with average depths (per survey) for gauged Warden wetlands plus other env data
 row.names(av.depths) <- av.depths$Survey
@@ -377,13 +377,13 @@ BEdat.sum2$Pipeline_days <- Pipeline.sum$Pipeline_days #add spring pipeline data
 
 ```
 
-Produce environmental data correlation matrices
+####Produce environmental data correlation matrices
 ```{r check-correlation-between-env-variables}
 cor(BEdat.spr, method="pearson")
 cor(BEdat.sum, method="pearson")
 ```
 
-Range standardise env data
+####Range standardise env data
 ```{r range-standardise-env-data}
 BEdat.spr.st <-BEdat.spr
 for (i in 1:ncol(BEdat.spr)){
@@ -397,18 +397,15 @@ for (i in 1:ncol(BEdat.sum)){
 Pipeline.sum$Pipeline_days_st <- rescale(Pipeline.sum$Pipeline_days, to = c(0,1))
 ```
 
-Ordination graph of Warden system waterbird communities by survey with surveys undertaken in summer scaled and coloured by average depth of gauged wetlands  
+####Ordination graphs of Warden system waterbird communities by survey with surveys undertaken in spring and summer scaled and coloured by average depth of gauged wetlands  
 ```{r summer-Warden-ord-plot-bydepths, include=TRUE}
+#summer
 ggplot(Warden.sum.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.7, 0.7) + ylim(-0.7, 0.7) + coord_fixed(ratio = 1) + geom_point(aes(size = BEdat.sum.st$Depth, colour=BEdat.sum.st$Depth)) + scale_size(range = c(3, 12)) + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none")
-```
-
-Ordination graph of Warden system waterbird communities by survey with surveys undertaken in spring scaled and coloured by average depth of gauged wetlands  
-```{r spring-Warden-ord-plot-bydepths, include=TRUE}
-# note need to restrict both data matrix and average depths to just summer surveys
+#spring
 ggplot(Warden.spr.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.3, 0.3) + ylim(-0.3, 0.3) + coord_fixed(ratio = 1) + geom_point(aes(size = Warden.spr.m$Australian.Shelduck, colour = Warden.spr.m$Australian.Shelduck)) + scale_size(range = c(3, 12)) + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none") + scale_x_reverse(limits=c(0.3, -0.3))
 ```
 
-Create euclidean distance matrices for datasets to be used to partial bioenv analysis
+####Create euclidean distance matrices for datasets to be used to partial bioenv analysis
 ```{r create-matrices-for-Pipeline}
 Pipeline.spr.m <-vegdist(Pipeline.spr, method="euclidean")
 Pipeline.sum.m <- vegdist(Pipeline.sum, method ="euclidean")
@@ -418,7 +415,7 @@ Surv.Pipe.spr.m <- vegdist(Surv.Pipe.spr, method="euclidean")
 Surv.Pipe.sum.m <- vegdist(Surv.Pipe.sum, method="euclidean")
 ```
 
-Bio-env analysis to determine influence of pipeline operation, depth and rainfall on waterbrd communities on the Warden wetlands. Uses pearson correlation because env vars without major outliers and not too far off normal in qqnorm plots.
+####Bio-env analysis to determine influence of pipeline operation, depth and rainfall on waterbrd communities on the Warden wetlands. Uses pearson correlation because env vars without major outliers and not too far off normal in qqnorm plots.
 ```{r bio-env-Warden}
 #SPRING
 Warden.spr.be.P <- bioenv(Warden.spr.m, BEdat.spr2, method = "pearson", index = "bray", metric="euclidean")
@@ -435,7 +432,7 @@ BEdat.sum.md <-bioenvdist(Warden.sum.be.P, which="best")
 mantel(Warden.sum.md, BEdat.sum.md, method="pearson", permutations=999) #mantel test to determine permutational significance
 ```
 
-Bio-env analysis to determine which species best match patterns in overall community ordination
+####Bio-env analysis to determine which species best match patterns in overall community ordination
 ```{r}
 #spring
 Warden.spr.msq <- sqrt(Warden.spr.m) #sqrt dataset since bv.step (as opposed to bvstep) does not do this, but needs to be done for consistency.
@@ -447,33 +444,18 @@ write.csv(Warden.spr8, "Warden 8 species.csv")
 Warden.spr8.m <- vegdist(sqrt(Warden.spr8), method= "bray") #create dissimilarity matrix for just 8 species, for use in mantel tests
 Warden.spr.md <- vegdist(sqrt(Warden.spr.m), method = "bray") #calculate Warden spring 
 mantel(Warden.spr.md, Warden.spr8.m, method="pearson", permutations=999) #mantel test to determine permutational significance
+spring.species <- c("Australian.Shelduck","Banded.Stilt","Grey.Teal","Pacific.Black.Duck","Red.necked.Stint","Silver.Gull","Straw.necked.Ibis")
+Warden.sprsp.m <- Warden.spr.msq[, spring.species] #extract just the 8 species for spring with square root abundances (because the ordination being used for the envfit (below) was performed on square root distances
+
+
+
 #summer
 
 
 
 ```
 
-```{r add-8-species-to-spring-ordination-as-vectors}
-spring.species <- c("Australian.Shelduck","Banded.Stilt","Grey.Teal","Pacific.Black.Duck","Red.necked.Stint","Silver.Gull","Straw.necked.Ibis")
-Warden.sprsp.m <- Warden.spr.msq[, spring.species] #extract just the 8 species for spring
-fit <- envfit(Warden.spr.MDS, Warden.sprsp.m, permutations = 999, choices=c(1,2)) #fit these species as vectors in unconstrained ordination
-Warden.arrows.spr <-as.data.frame(fit$vectors$arrows*sqrt(fit$vectors$r)) #extract vector coordinates
-Warden.arrows.spr$Species <- row.names(Warden.arrows.spr) #add species names to vectors
-
-fit.env <- envfit(Warden.spr.MDS, input env data
-
-plot(Warden.spr.MDS, display="sites", type = "t", ylim= c(-1, 5), xlim=rev(c(-0.2, 0.2)))
-plot(fit)
-
-ggplot(Warden.spr.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.8, 0.6) + ylim(-0.6, 0.6) + coord_fixed(ratio = 1) + geom_point(aes(size = 2)) + geom_text(aes(label = Survey), colour="blue", cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none") + scale_x_reverse(limits=c(0.6, -0.8)) + geom_segment(data=Warden.arrows.spr,aes(x=0,xend=NMDS1,y=0,yend=NMDS2), arrow = arrow(length = unit(0.5, "cm")),colour="grey",inherit_aes=FALSE) + geom_text(data=Warden.arrows.spr,aes(x=NMDS1,y=NMDS2,label=Species),size=3)
-
-
-
-
-#see https://stackoverflow.com/questions/14711470/plotting-envfit-vectors-vegan-package-in-ggplot2 for adding vectors to ggplot ordination
-```
-
-db-RDA analyses including extended plotting
+####db-RDA analyses including extended plotting
 ```{r dbRDA-of-Warden-data}
 #spring
 mod1 <- capscale(Warden.spr.m ~ xxxxxxxx, BEdat.spr, dist="bray") #test individual variables (use BEdat.spr2 to include Pipeline_days
@@ -489,7 +471,7 @@ mod3 #stepwise model
 anova(mod3) #signif or stepwise model
 #build db-RDA plot from components
 plot(mod3, type = "n", choices = c(1, 2))
-points(mod3, display = "sites", pch=16, cex=Warden.sprsp.m$Straw.necked.Ibis^2/50, col="grey") #scale sites by abundances of the 8 species
+points(mod3, display = "sites", pch=21, bg = "grey", cex=Warden.sprsp.m$Straw.necked.Ibis^2/50) #scale sites by abundances of the 8 species
 text(mod3, display = "sites", cex = 0.7)
 points(mod3, display = "bp", cex=2)
 text(mod3, display = "bp", cex=0.7, col="blue")
@@ -506,7 +488,7 @@ mod3 <- capscale(Warden.sum.m ~ CDM6MO_MYRUP, BEdat.sum, dist ="bray")
 mod3
 ```
 
-### test whether pipeline is still a factor when Lake Warden data removed
+#### test whether pipeline is still a factor when Lake Warden data removed
 Create a Warden matrix without Lake Warden data
 ```{r}
 Warden.spr.NoWa <- Warden.spr[-grep("WRP013", Warden.spr$SiteCode), ] #remove records for Lake Warden
@@ -519,7 +501,7 @@ write.csv(Warden.spr.NoWa.m, "./analysis_data/Warden_spr_NoWa_m.csv")
 Warden.spr.NoWa.m <- read.csv("./analysis_data/Warden_spr_NoWa_m.csv", row.names=1)
 ```
 
-Create a warden matrix of just Lake Warden
+####Create a warden matrix of just Lake Warden
 ```{r}
 Warden.spr.Wa <- Warden.spr[Warden.spr$SiteCode == "WRP013", ] #include only records for Lake Warden
 Warden.spr.Wa.agg<- aggregate(data=Warden.spr.Wa, Count ~ CommonName + Survey, FUN="sum")
@@ -531,9 +513,9 @@ write.csv(Warden.spr.Wa.m, "./analysis_data/Warden_spr_NoWa_m.csv")
 Warden.spr.Wa.m <- read.csv("./analysis_data/Warden_spr_NoWa_m.csv", row.names=1)
 Warden.spr.Wa.md <- vegdist(Warden.spr.Wa.m, method = "bray")
 write.csv(as.matrix(Warden.spr.Wa.md), file = "Warden_spr_Wa_md.csv")
-  ```
+```
 
-Bioenv without Lake Warden
+#####Bioenv without Lake Warden
 ```{r bioenv-n-Lake-Warden-data}
 Warden.spr.NoWa.be <- bioenv(Warden.spr.NoWa.m, Pipeline.spr, method = "pearson", index = "bray", metric="euclidean")
 Warden.spr.NoWa.be
@@ -542,7 +524,7 @@ Pipeline.NoWa.be.m <-bioenvdist(Warden.spr.NoWa.be, which="best")
 mantel(Warden.spr.NoWa.md, Pipeline.NoWa.be.m, method="pearson", permutations=999) #mantel test to determine permutational significance
 ```
 
-db-RDA without lake Warden
+#####db-RDA without lake Warden
 ```{r}
 mod2 <- capscale(Warden.spr.NoWa.m ~ ., BEdat.spr2, dist="bray") #full model
 mod0 <- capscale(Warden.spr.NoWa.m ~ 1, BEdat.spr2, dist="bray") #Null model
@@ -553,9 +535,33 @@ anova(mod3) #signif or stepwise model
 mod3 #stepwise model
 ```
 
-Fit vectors from the env variables identified in the db-RDA and bio-env analysis on a plot of the constrained ordination with symbols scaled to each of the 8 species identified in the bio-bio bv.step analysis
+####create env dataset with just those vars from the rda and bio-env analyses
 ```{r}
 
+env.restricted.spr <- c("CDM12MO_ESPER", "CDM12MO_EAERO", "Depth", "Pipeline_days")
+BEdat.spr.rest <- BEdat.spr2[, env.restricted.spr]
+```
+
+####env fit to add waterbird and environemntal vectors to unconstrained ordination
+```{r add-8-species-to-spring-ordination-as-vectors}
+#uses Warden.sprsp (from the bio-bio bv.step analysis above) and BEdat.spr.rest (from code above)
+fit.spr.birds <- envfit(Warden.spr.MDS, Warden.sprsp.m, permutations = 999, choices=c(1,2)) #fit these species as vectors in unconstrained ordination
+Warden.arrows.spr.birds <-as.data.frame(fit.spr.birds$vectors$arrows*sqrt(fit$vectors$r)) #extract vector coordinates
+Warden.arrows.spr.birds$Species <- row.names(Warden.arrows.spr.birds) #add species names to vectors
+#restricted env vars envfit
+fit.spr.birds <- envfit(Warden.spr.MDS, Warden.sprsp.m, permutations = 999, choices=c(1,2)) #fit these species as vectors in unconstrained ordination
+fit.spr.env <- envfit(Warden.spr.MDS, BEdat.spr.rest, permutations = 999, choices=c(1,2))
+plot(Warden.spr.MDS, display="sites", type = "t")
+plot(fit.spr.env)
+
+
+
+
+
+
+ggplot(Warden.spr.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.8, 0.6) + ylim(-0.6, 0.6) + coord_fixed(ratio = 1) + geom_point(aes(size = 2)) + geom_text(aes(label = Survey), colour="blue", cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none") + scale_x_reverse(limits=c(0.6, -0.8)) + geom_segment(data=Warden.arrows.spr,aes(x=0,xend=NMDS1,y=0,yend=NMDS2), arrow = arrow(length = unit(0.5, "cm")),colour="grey",inherit_aes=FALSE) + geom_text(data=Warden.arrows.spr,aes(x=NMDS1,y=NMDS2,label=Species),size=3)
+
+#see https://stackoverflow.com/questions/14711470/plotting-envfit-vectors-vegan-package-in-ggplot2 for adding vectors to ggplot ordination
 ```
 
 
