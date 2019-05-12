@@ -383,7 +383,7 @@ cor(BEdat.spr, method="pearson")
 cor(BEdat.sum, method="pearson")
 ```
 
-####Range standardise env data
+####Range standardise env data without pipeline data
 ```{r range-standardise-env-data}
 BEdat.spr.st <-BEdat.spr
 for (i in 1:ncol(BEdat.spr)){
@@ -395,6 +395,14 @@ for (i in 1:ncol(BEdat.sum)){
   BEdat.sum.st[, i] <- rescale(BEdat.sum[, i], to = c(0,1))
 }
 Pipeline.sum$Pipeline_days_st <- rescale(Pipeline.sum$Pipeline_days, to = c(0,1))
+```
+
+####Range standardise env data with pipeline
+```{r range-standardise-env-data}
+BEdat.spr.st2 <-BEdat.spr2
+for (i in 1:ncol(BEdat.spr2)){
+  BEdat.spr.st2[, i] <- rescale(BEdat.spr2[, i], to = c(0,1))
+}
 ```
 
 ####Ordination graphs of Warden system waterbird communities by survey with surveys undertaken in spring and summer scaled and coloured by average depth of gauged wetlands  
@@ -440,20 +448,34 @@ Warden.spr.bio <- bv.step(Warden.spr.msq, Warden.spr.msq, scale.fix=FALSE, scale
 Warden.spr.bio
 #note: warnings are not important, see http://menugget.blogspot.com/2011/06/clarke-and-ainsworths-bioenv-and-bvstep.html
 Warden.spr8 <- Warden.spr.m[, spring.species] # create new survey x specie matrix with the 8 species from the bv.step analysis
-write.csv(Warden.spr8, "Warden 8 species.csv")
+write.csv(Warden.spr8, "./analysis_data/Warden 8 species.csv")
 Warden.spr8.m <- vegdist(sqrt(Warden.spr8), method= "bray") #create dissimilarity matrix for just 8 species, for use in mantel tests
 Warden.spr.md <- vegdist(sqrt(Warden.spr.m), method = "bray") #calculate Warden spring 
 mantel(Warden.spr.md, Warden.spr8.m, method="pearson", permutations=999) #mantel test to determine permutational significance
 spring.species <- c("Australian.Shelduck","Banded.Stilt","Grey.Teal","Pacific.Black.Duck","Red.necked.Stint","Silver.Gull","Straw.necked.Ibis")
 Warden.sprsp.m <- Warden.spr.msq[, spring.species] #extract just the 8 species for spring with square root abundances (because the ordination being used for the envfit (below) was performed on square root distances
 
-
-
 #summer
-
+Warden.sum.msq <- sqrt(Warden.sum.m) #sqrt dataset since bv.step (as opposed to bvstep) does not do this, but needs to be done for consistency.
+Warden.sum.bio <- bv.step(Warden.sum.msq, Warden.sum.msq, scale.fix=FALSE, scale.var=FALSE, fix.dist.method = "bray", var.dist.method = "bray", max.rho=0.95, min.delta.rho=0.01, output.best=10, num.restarts = 200)
+Warden.sum.bio
+#note: warnings are not important, see http://menugget.blogspot.com/2011/06/clarke-and-ainsworths-bioenv-and-bvstep.html
+summer.species <- c("Australian.Shelduck","Grey.Teal","Little.Black.Cormorant")
+Warden.sum3 <- Warden.sum.m[, summer.species] # create new survey x specie matrix with the 8 species from the bv.step analysis
+write.csv(Warden.sum3, "./analysis_data/Warden 3 species.csv")
+Warden.sum3.m <- vegdist(sqrt(Warden.sum3), method= "bray") #create dissimilarity matrix for just 8 species, for use in mantel tests
+Warden.sum.md <- vegdist(sqrt(Warden.sum.m), method = "bray") #calculate Warden suming 
+mantel(Warden.sum.md, Warden.sum3.m, method="pearson", permutations=999) #mantel test to determine permutational significance
+Warden.sumsp.m <- Warden.sum.msq[, summer.species] #extract just the 8 species for spring with square root abundances (because the ordination being used for the envfit (below) was performed on square root distances
 
 
 ```
+
+
+
+
+
+
 
 ####db-RDA analyses including extended plotting
 ```{r dbRDA-of-Warden-data}
@@ -537,23 +559,31 @@ mod3 #stepwise model
 
 ####create env dataset with just those vars from the rda and bio-env analyses
 ```{r}
-
 env.restricted.spr <- c("CDM12MO_ESPER", "CDM12MO_EAERO", "Depth", "Pipeline_days")
+#non-standardised
 BEdat.spr.rest <- BEdat.spr2[, env.restricted.spr]
+#standardised
+BEdat.spr.st2.rest <- BEdat.spr.st2[, env.restricted.spr]
 ```
 
-####env fit to add waterbird and environemntal vectors to unconstrained ordination
+####env fit to add waterbird and environmental vectors to unconstrained ordination
 ```{r add-8-species-to-spring-ordination-as-vectors}
 #uses Warden.sprsp (from the bio-bio bv.step analysis above) and BEdat.spr.rest (from code above)
 fit.spr.birds <- envfit(Warden.spr.MDS, Warden.sprsp.m, permutations = 999, choices=c(1,2)) #fit these species as vectors in unconstrained ordination
-Warden.arrows.spr.birds <-as.data.frame(fit.spr.birds$vectors$arrows*sqrt(fit$vectors$r)) #extract vector coordinates
+Warden.arrows.spr.birds <-as.data.frame(fit.spr.birds$vectors$arrows*sqrt(fit.spr.birds$vectors$r)) #extract vector coordinates
 Warden.arrows.spr.birds$Species <- row.names(Warden.arrows.spr.birds) #add species names to vectors
 #restricted env vars envfit
-fit.spr.birds <- envfit(Warden.spr.MDS, Warden.sprsp.m, permutations = 999, choices=c(1,2)) #fit these species as vectors in unconstrained ordination
-fit.spr.env <- envfit(Warden.spr.MDS, BEdat.spr.rest, permutations = 999, choices=c(1,2))
-plot(Warden.spr.MDS, display="sites", type = "t")
-plot(fit.spr.env)
+plot(Warden.spr.MDS, type = "n", xlim=c(-0.4, 0.5), ylim=c(-0.4, 0.3))
+points(Warden.spr.MDS, display = "sites", bg = "grey", pch=21, cex = Warden.spr8$Australian.Shelduck/500)
+text(Warden.spr.MDS, display = "sites", cex = 0.7)
+plot(fit.spr.birds)
 
+
+fit.spr.env <- envfit(Warden.spr.MDS, BEdat.spr.st2.rest, permutations = 999) #fit env vars as vectors in unconstrained ordination
+plot(Warden.spr.MDS, type = "n", xlim=c(-0.4, 0.5), ylim=c(-0.4, 0.3))
+points(Warden.spr.MDS, display = "sites", bg = "grey", pch=21, cex=BEdat.spr.rest$CDM12MO_ESPER/15)
+text(Warden.spr.MDS, display = "sites", cex = 0.7)
+plot(fit.spr.env)
 
 
 
