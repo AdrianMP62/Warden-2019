@@ -21,9 +21,9 @@ Uses the following datafiles:
 Date and time: `r Sys.time()`
 
 ```{r setup, echo=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(message = FALSE)
-knitr::opts_chunk$set(include = FALSE)
+knitr::opts_chunk$set(include = TRUE)
 knitr::opts_knit$set(root.dir = '../') 
 ```
 
@@ -43,6 +43,7 @@ source("./functions/bv_step_ext.R")
 source("./functions/bv.step.R")
 ```
 
+
 #Analyses of waterbird data from the Warden and Gore Ramsar wetlands 2006 to 2019
   
 The following is the output from an Rmarkdown R script for analyses of waterbird communities of the Warden and Gore wetland systems surveyed between Oct 2006 and Feb 2019.  
@@ -51,8 +52,7 @@ These analyses are based primarily on ground counts. Aerial counts are only for 
   
 ##Multi-variate analysis of Warden and Gore combined waterbird data by season  
 
-This ordination shows that, by and large, with data from systems (Warden and Gore) combined, there is a difference between waterbird communities present in spring and those present in late summer.
-
+Import data and format fields
 ```{r import-and-restructure-Warden-and-Gore-waterbird-data}
 input.data <- read.csv("./raw_data/Warden_Gore_by_suite_06_19.csv")
  WG.bySeason <- input.data
@@ -68,11 +68,9 @@ WG.bySeason$Season <- factor(format(yq, "%q"), levels = 1:4, labels = c("summer"
 write.csv(WG.bySeason, "./analysis_data/WG.bySeason.csv")
 ```
 
-```{r aggregare-by-survey-and-species}
+Aggregate data by Season and create matrix
+```{r aggregate-by-survey-and-species}
   WG.bySeason.agg <- aggregate(data=WG.bySeason, Count ~ CommonName + Survey + Season, FUN="sum") #sum data by common name and survey period
-```
-
-```{r create-matrix-for-ordination}
   WG.bySeason.agg <- melt(WG.bySeason.agg) #melt data 
   WG.bySeason.m <- dcast(WG.bySeason.agg, Survey ~ CommonName, fill="0") #create matrix from flat-file
   rownames(WG.bySeason.m) <- WG.bySeason.m [,1] #use first column (season) as row.names
@@ -80,42 +78,62 @@ write.csv(WG.bySeason, "./analysis_data/WG.bySeason.csv")
   WG.bySeason.m <- data.matrix(WG.bySeason.m, rownames.force = NA) #convert data to numeric format (required for metaMDS)
 ```
 
-```{r undertake-2D-and-3D_ordination}
+Run 2D ordination
+```{r 2D-ordination}
 WG.MDS.bySeas <- metaMDS(WG.bySeason.m, distance = "bray")
-WG.3dMDS.bySeas <- metaMDS(WG.bySeason.m, distance = "bray", k=3)
 ```
 
+Extract survey and season variables for ordination plots
 ```{r extract-list-of-seasons-for-ordination-plots}
-surv.seas<- unique(WG.bySeason[c("Survey", "Season")]) #extract a unique list of survey codes (mmm-yy) and season so can later allocate a season to each survey in the MDS output
+surv.seas <- unique(WG.bySeason[c("Survey", "Season")]) #extract a unique list of survey codes (mmm-yy) and season so can later allocate a season to each survey in the MDS output
 surv.seas <- surv.seas[order(surv.seas$Survey), ] #reorder alphabetically by Survey (Dec-2011 to Oct-2012)
 ```
   
+Extract ordination axis coordinates
 ```{r create-2D-dataset-for-plotting}
   WG.MDS.bySeas.pts <- as.data.frame(WG.MDS.bySeas$points) #extract 2D ordination coordinates (points)
   WG.MDS.bySeas.pts$Survey <- row.names(WG.MDS.bySeas.pts) #use survey period as row.names
   WG.MDS.bySeas.pts$Season <- surv.seas[match(WG.MDS.bySeas.pts$Survey, surv.seas$Survey), 2] #adds 'season' (spring versus summer) (from column '2' of Surv.Seas) to ordination points by matching survey between points and surv.seas
 ```
+ 
+The ordination below shows that, by and large, with data from systems (Warden and Gore) combined, there is a difference between waterbird communities present in spring and those present in late summer. 
+ 
+2D ordination plot of Warden and Gore data combined by season, stress = `r WG.MDS.bySeas$stress`.
+```{r, 2D-ordination-plot-by-season, include=TRUE}
+Xmin <- min(WG.MDS.bySeas.pts$MDS1)*1.3
+Xmax <- max(WG.MDS.bySeas.pts$MDS1)*1.3
+Ymin <- min(WG.MDS.bySeas.pts$MDS2)*1.3
+Ymax <- max(WG.MDS.bySeas.pts$MDS2)*1.3
+ggplot(WG.MDS.bySeas.pts, aes(x=MDS1, y=MDS2)) + xlim(Xmin,Xmax) + ylim(Ymin,Ymax) + geom_point(aes(colour=Season), size=5) + coord_fixed(ratio = 1) + geom_text(aes(label=Survey), size=3, vjust=1, hjust=1.3)
+```
 
+However, the stress value of the above ordination is high at `r WG.3dMDS.bySeas$stress`, so a 3D ordination was also produced.
+```{r 3D-ordination}
+WG.3dMDS.bySeas <- metaMDS(WG.bySeason.m, distance = "bray", k=3)
+```
+
+Extract ordination axis coordinates
 ```{r create-3D-dataset-for-plotting}
   WG.3dMDS.bySeas.pts <- as.data.frame(WG.3dMDS.bySeas$points) #extract 3D ordination coordinates (points)
   WG.3dMDS.bySeas.pts$Survey <- row.names(WG.3dMDS.bySeas.pts) #use survey period as row.names
   WG.3dMDS.bySeas.pts$Season <- surv.seas[match(WG.3dMDS.bySeas.pts$Survey, surv.seas$Survey), 2] #adds 'season' (spring versus summer) (from column '2' of Surv.Seas) to ordination points by matching survey between points and surv.seas
 ```
- 
-2D ordination plot of Warden and Gore data combined by season, stress = `r WG.MDS.bySeas$stress`.
-```{r, 2D-ordination-plot-by-season, include=TRUE}
-ggplot(WG.MDS.bySeas.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.4, 0.35) + ylim(-0.3, 0.2) + geom_point(aes(colour=Season), size=5) + coord_fixed(ratio = 1) + geom_text(aes(label=Survey), size=3, vjust=1, hjust=1.3)
-```
 
-3D ordination plot of Warden and Gore data combined by season, stress = `r WG.MDS.bySeas$stress`.
+3D ordination plot of Warden and Gore data combined by season, stress = `r WG.3dMDS.bySeas$stress`.
 ```{r, 3D-ordination-plot-by-season, include=TRUE}
-ggplot(WG.3dMDS.bySeas.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.4, 0.35) + ylim(-0.3, 0.3) + geom_point(aes(colour=Season, shape=System), size=5) + coord_fixed(ratio = 1) + geom_text(aes(label=Survey), size=3, vjust=1, hjust=1.3) + theme (plot.margin=unit(c(0,0,0,5),"mm"))
+Xmin <- min(WG.3dMDS.bySeas.pts$MDS1)*1.3
+Xmax <- max(WG.3dMDS.bySeas.pts$MDS1)*1.3
+Ymin <- min(WG.3dMDS.bySeas.pts$MDS2)*1.3
+Ymax <- max(WG.3dMDS.bySeas.pts$MDS2)*1.3
+ggplot(WG.3dMDS.bySeas.pts, aes(x=MDS1, y=MDS2)) + xlim(Xmin, Xmax) + ylim(Ymin, Ymax) + geom_point(aes(colour=Season), size=5) + coord_fixed(ratio = 1) + geom_text(aes(label=Survey), size=3, vjust=1, hjust=1.3) + theme (plot.margin=unit(c(0,0,0,5),"mm"))
 ```
 
+A 'Simper' analysis was run to extract a short-list of species most responsible for the differences between seasons
 ```{r run-simper-analysis-to-determine-influence-of-species-by-season}
   WG.bySeas.Simper <- simper(WG.bySeason.m, surv.seas$Season) #Simper analysis to determine which species best correlated with differences between seasons of whole dataset
 ```
 
+Extract top 8 species names from the Simper analysis
 ```{r extract-top-8-spp-from-simper-to-contrast-seasons}
   WG.Simper.ext <- WG.bySeas.Simper$spring_summer #extract results from Simper analysis
   WG.Sim.Average <- as.data.frame(WG.Simper.ext$average) #extract the average difference data
@@ -123,14 +141,16 @@ ggplot(WG.3dMDS.bySeas.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.4, 0.35) + ylim(-0.3,
   WG.bySeas.Simper2 <- cbind(WG.Sim.Spec, WG.Sim.Average) #combine species with averages
   WG.bySeas.Simper2 <- WG.bySeas.Simper2[ order(-WG.bySeas.Simper2[, 2]), ] #order species and averages by average
 colnames(WG.bySeas.Simper2) = c("Species", "cont") #add new column names
-  WG.bySeas.Simper2 <- as.vector(WG.bySeas.Simper2[1:8, 1]) #extracts 
+  WG.bySeas.Simper2 <- as.vector(WG.bySeas.Simper2[1:8, 1]) #extracts top 8 species names
 ```
 
+Aggregate species x site listing by season, survey and common name to later extract data for just the 8 species
 ```{r aggregate-by-sppname-and-survey-for season-simper}
   agg.spec.data <- aggregate(data=WG.bySeason, Count ~ CommonName + Season + Survey, FUN="sum") #aggregate counts by common name, season and survey
   #agg.spec.data <- as.data.frame(sapply(agg.spec.data, gsub, pattern = "-", replacement = " ")) #replace dashes with spaces
 ```
 
+Extract top 8 species from aggregated data
 ```{r extract-counts-of-top-8-species-from-simper-for-contrasting-system}
   agg.spec.data.8 <- agg.spec.data[agg.spec.data$CommonName %in% WG.bySeas.Simper2, ]
   rownames(agg.spec.data.8) <- NULL #reset row names
