@@ -107,7 +107,7 @@ Ymax <- max(WG.MDS.bySeas.pts$MDS2)*1.3
 ggplot(WG.MDS.bySeas.pts, aes(x=MDS1, y=MDS2)) + xlim(Xmin,Xmax) + ylim(Ymin,Ymax) + geom_point(aes(colour=Season), size=5) + coord_fixed(ratio = 1) + geom_text(aes(label=Survey), size=3, vjust=1, hjust=1.3)
 ```
 
-However, the stress value of the above ordination is high at `r WG.3dMDS.bySeas$stress`, so a 3D ordination was also produced.
+However, the stress value of the above ordination is high at `r WG.MDS.bySeas$stress`, so a 3D ordination was also produced.
 #### 3D ordination
 ```{r}
 WG.3dMDS.bySeas <- metaMDS(WG.bySeason.m, distance = "bray", k=3)
@@ -471,7 +471,7 @@ mantel(Warden.spr.md, BEdat.spr.md2, method="pearson", permutations=999) #mantel
 Warden.sum.be <- bioenv(Warden.sum.m, BEdat.sum2, method = "pearson", index = "bray", metric="euclidean")
 Warden.sum.be
 Warden.sum.md <- vegdist(Warden.sum.m, method = "bray") #calculate Warden spring waterbird bray-curtis dissimilarity index
-BEdat.sum.md <-bioenvdist(Warden.sum.be.P, which="best")
+BEdat.sum.md <-bioenvdist(Warden.sum.be, which="best")
 mantel(Warden.sum.md, BEdat.sum.md, method="pearson", permutations=999) #mantel test to determine permutational significance
 ```
 
@@ -482,12 +482,13 @@ Warden.spr.msq <- sqrt(Warden.spr.m) #sqrt dataset since bv.step (as opposed to 
 Warden.spr.bio <- bv.step(Warden.spr.msq, Warden.spr.msq, scale.fix=FALSE, scale.var=FALSE, fix.dist.method = "bray", var.dist.method = "bray", max.rho=0.95, min.delta.rho=0.01, output.best=10, num.restarts = 100)
 Warden.spr.bio
 #note: warnings are not important, see http://menugget.blogspot.com/2011/06/clarke-and-ainsworths-bioenv-and-bvstep.html
+spring.species <- c("Australian.Shelduck","Banded.Stilt","Grey.Teal","Pacific.Black.Duck","Red.necked.Stint","Silver.Gull","Straw.necked.Ibis")
 Warden.spr8 <- Warden.spr.m[, spring.species] # create new survey x specie matrix with the 8 species from the bv.step analysis
 write.csv(Warden.spr8, "./analysis_data/Warden 8 species.csv")
 Warden.spr8.m <- vegdist(sqrt(Warden.spr8), method= "bray") #create dissimilarity matrix for just 8 species, for use in mantel tests
 Warden.spr.md <- vegdist(sqrt(Warden.spr.m), method = "bray") #calculate Warden spring 
 mantel(Warden.spr.md, Warden.spr8.m, method="pearson", permutations=999) #mantel test to determine permutational significance
-spring.species <- c("Australian.Shelduck","Banded.Stilt","Grey.Teal","Pacific.Black.Duck","Red.necked.Stint","Silver.Gull","Straw.necked.Ibis")
+
 Warden.sprsp.m <- Warden.spr.msq[, spring.species] #extract just the 8 species for spring with square root abundances (because the ordination being used for the envfit (below) was performed on square root distances
 
 #summer
@@ -616,7 +617,7 @@ plot(fit.spr.env)
 
 
 ```{r}
-ggplot(Warden.spr.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.8, 0.6) + ylim(-0.6, 0.6) + coord_fixed(ratio = 1) + geom_point(aes(size = 2)) + geom_text(aes(label = Survey), colour="blue", cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none") + scale_x_reverse(limits=c(0.6, -0.8)) + geom_segment(data=Warden.arrows.spr,aes(x=0,xend=NMDS1,y=0,yend=NMDS2), arrow = arrow(length = unit(0.5, "cm")),colour="grey",inherit_aes=FALSE) + geom_text(data=Warden.arrows.spr,aes(x=NMDS1,y=NMDS2,label=Species),size=3)
+ggplot(Warden.spr.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.8, 0.6) + ylim(-0.6, 0.6) + coord_fixed(ratio = 1) + geom_point(aes(size = 2)) + geom_text(aes(label = Survey), colour="blue", cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none") + scale_x_reverse(limits=c(0.6, -0.8)) + geom_segment(data=Warden.arrows.spr.birds,aes(x=0,xend=NMDS1,y=0,yend=NMDS2), arrow = arrow(length = unit(0.5, "cm")),colour="grey",inherit_aes=FALSE) + geom_text(data=Warden.arrows.spr.birds,aes(x=NMDS1,y=NMDS2,label=Species),size=3)
 #see https://stackoverflow.com/questions/14711470/plotting-envfit-vectors-vegan-package-in-ggplot2 for adding vectors to ggplot ordination
 ```
 
@@ -755,7 +756,7 @@ Gore.spr.m <- read.csv("./analysis_data/Gore_spr_m.csv", row.names=1)
 
 ####2D MDS unconstrained ordination using metaMDS in package vegan to analyse effects of season within the Gore system
 ```{r}
-Gore.sum.MDS <- metaMDS(Gore.sum.m, distance = "bray", autotransform = TRUE)
+Gore.sum.MDS <- metaMDS(Gore.sum.m, distance = "bray", autotransform = FALSE, k=3)
 Gore.spr.MDS <- metaMDS(Gore.spr.m, distance = "bray", autotransform = TRUE)
 ```
 
@@ -765,15 +766,17 @@ Gore.sum.MDS.pts <- as.data.frame(Gore.sum.MDS$points) #extract coordinates from
 Gore.sum.MDS.pts$Survey <- row.names(Gore.sum.MDS.pts)
 Gore.spr.MDS.pts <- as.data.frame(Gore.spr.MDS$points) #extract coordinates from ordination
 Gore.spr.MDS.pts$Survey <- row.names(Gore.spr.MDS.pts)
+Gore.spr.MDS.pts$Survey <- as.yearmon(Gore.spr.MDS.pts$Survey, "%b-%Y") #convert survey to date format using package zoo
+Gore.spr.MDS.pts <- Gore.spr.MDS.pts[order(as.Date(Gore.spr.MDS.pts$Survey, format="%b-%Y")),] #order by Survey date
 #W.points$season <- c("spring","summer","summer","summer","summer","summer","summer","summer","spring","spring","spring","spring","spring","spring","spring","spring") # add season labels as new column in dataframe
 ```
 
 ####Ordination graphs of Gore system waterbird communities by survey with surveys undertaken in spring and summer scaled and coloured by average depth of gauged wetlands  
 ```{r}
 #summer
-ggplot(Gore.sum.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.7, 0.7) + ylim(-0.7, 0.7) + coord_fixed(ratio = 1) + geom_point() + scale_size(range = c(3, 12)) + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none")
+ggplot(Gore.sum.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-1.5, 0.7) + ylim(-0.7, 0.7) + coord_fixed(ratio = 1) + geom_point(cex=8) + geom_path() + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none")
 #spring
-ggplot(Gore.spr.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.5, 0.5) + ylim(-0.3, 0.3) + coord_fixed(ratio = 1) + geom_point(cex=8) + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none")
+ggplot(Gore.spr.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.5, 0.7) + ylim(-0.3, 0.3) + coord_fixed(ratio = 1) + geom_point(cex=8) + geom_path() + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none")
 ```
 
 ###Stacked column plots for Gore system waterbirds
