@@ -707,6 +707,7 @@ Taxonomy <- read.csv("./raw_data/Taxonomy.csv")
 ####Input waterbird data and split into spring and summer datasets, including creating a survey variable
 ```{r}
 input.data5 <- read.csv("./raw_data/Warden_Gore_by_suite_06_19.csv")
+Taxonomy <- read.csv("./raw_data/Taxonomy.csv")
 Gore <- input.data5
 Gore <- Gore[-grep("Unidentified", Gore$CommonName), ] #remove rows where birds not identified
 Gore <- Gore[Gore$System=="Gore", ] #cut down to just Gore wetlands
@@ -717,6 +718,7 @@ Gore <- Gore[Gore$System=="Gore", ] #cut down to just Gore wetlands
   yq
 Gore$Season <- factor(format(yq, "%q"), levels = 1:4, labels = c("summer", "autumn", "winter", "spring")) #create Season (spring vs summer) variable
   Gore.sum <- Gore[Gore$Season == "summer", ] #summer only data
+  Gore.sum$Group <- Taxonomy[match(Gore.sum$CommonName, Taxonomy$CommonName), 3]
   Gore.spr <- Gore[Gore$Season == "spring", ] #spring only data
   Gore.spr$Group <- Taxonomy[match(Gore.spr$CommonName, Taxonomy$CommonName), 3]
 ```
@@ -743,7 +745,7 @@ Gore.sum.m <- melt(Gore.sum.agg)
 Gore.sum.m <- dcast(Gore.sum.m, Survey ~ CommonName, fill="0")
 rownames(Gore.sum.m) <- Gore.sum.m[,1]
 Gore.sum.m[,1] <- NULL
-write.csv(Gore.sum.m, "Gore_sum_m.csv")
+write.csv(Gore.sum.m, "./analysis_data/Gore_sum_m.csv")
 Gore.sum.m <- read.csv("Gore_sum_m.csv", row.names=1)
 #spring
 Gore.spr.m <- melt(Gore.spr.agg)
@@ -756,8 +758,17 @@ Gore.spr.m <- read.csv("./analysis_data/Gore_spr_m.csv", row.names=1)
 
 ####2D MDS unconstrained ordination using metaMDS in package vegan to analyse effects of season within the Gore system
 ```{r}
-Gore.sum.MDS <- metaMDS(Gore.sum.m, distance = "bray", autotransform = FALSE, k=3)
-Gore.spr.MDS <- metaMDS(Gore.spr.m, distance = "bray", autotransform = TRUE)
+#summer
+Gore.sum.m.sqrt <- sqrt(Gore.sum.m)
+Gore.sum.MDS <- metaMDS(Gore.sum.m.sqrt, distance = "bray", k=3, try=1000, transformation = "FALSE")
+Gore.sum.MDS$stress
+plot(Gore.sum.MDS, choice = c(2,3))
+text(Gore.sum.MDS, display = c("sites", "species"))
+
+#spring
+Gore.spr.MDS <- metaMDS(sqrt(Gore.spr.m), distance = "bray", k=2)
+plot(Gore.spr.MDS, display="sites")
+text(Gore.spr.MDS, display="sites", cex=0.8)
 ```
 
 ####Extract ordination point data for ggplots
@@ -780,7 +791,6 @@ ggplot(Gore.spr.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.5, 0.7) + ylim(-0.3, 0.3
 ```
 
 ###Stacked column plots for Gore system waterbirds
-
 ```{r}
 input.data4 <- read.csv("./raw_data/Warden_Gore_by_suite_06_19.csv")
 Gore.stack <- input.data4
