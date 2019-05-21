@@ -759,11 +759,21 @@ Gore.spr.m <- read.csv("./analysis_data/Gore_spr_m.csv", row.names=1)
 ####2D MDS unconstrained ordination using metaMDS in package vegan to analyse effects of season within the Gore system
 ```{r}
 #summer
+Gore.sum.m.dist <- vegdist(Gore.sum.m, method = "bray")
 Gore.sum.m.sqrt <- sqrt(Gore.sum.m)
-Gore.sum.MDS <- metaMDS(Gore.sum.m.sqrt, distance = "bray", k=3, try=1000, transformation = "FALSE")
-Gore.sum.MDS$stress
-plot(Gore.sum.MDS, choice = c(2,3))
-text(Gore.sum.MDS, display = c("sites", "species"))
+Gore.sum.m.sqrt.dist <- vegdist(Gore.sum.m.sqrt, method = "bray", try=1000)
+#using own distance matrix
+Gore.sum.MDS.1 <- metaMDS(Gore.sum.m.sqrt.dist, k=2, autotransform = FALSE)
+plot(Gore.sum.MDS.1)
+text(Gore.sum.MDS.1, display = c("sites"))
+stressplot(Gore.sum.MDS.1)
+#supplying data matrix
+Gore.sum.MDS.2 <- metaMDS(Gore.sum.m.sqrt, distance = "bray", k=2, autotransform = FALSE)
+plot(Gore.sum.MDS.2)
+text(Gore.sum.MDS.2, display = c("sites"))
+stressplot(Gore.sum.MDS)
+
+
 
 #spring
 Gore.spr.MDS <- metaMDS(sqrt(Gore.spr.m), distance = "bray", k=2)
@@ -771,7 +781,17 @@ plot(Gore.spr.MDS, display="sites")
 text(Gore.spr.MDS, display="sites", cex=0.8)
 ```
 
-####Extract ordination point data for ggplots
+#To avoid collapse of some surveys to the same ordination point (degenerate ordination)
+```{r}
+Gore.sum.monoMDS <- monoMDS(Gore.sum.m.sqrt.dist, k=2, model = "global", try=1000)
+plot(Gore.sum.monoMDS)
+stressplot(Gore.sum.monoMDS)
+Gore.sum.monoMDS.pts <- Gore.sum.monoMDS$points
+
+
+```
+
+####Extract ordination point data for ggplots for metaMDS
 ```{r}
 Gore.sum.MDS.pts <- as.data.frame(Gore.sum.MDS$points) #extract coordinates from ordination
 Gore.sum.MDS.pts$Survey <- row.names(Gore.sum.MDS.pts)
