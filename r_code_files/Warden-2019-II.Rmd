@@ -258,14 +258,9 @@ the Nov 2018 and Feb 2019 surveys are within the range of community compositions
 ggplot(WG.3dMDS.bySyst.pts, aes(x=MDS1, y=MDS2, shape=SystSeas, colour=SystSeas)) + xlim(-0.5, 0.4) + ylim(-0.3, 0.3) + coord_fixed(ratio = 1) + geom_point(size=5) + scale_color_manual(values=c("blue","blue","red","red")) + scale_shape_manual(values=c(0,15,2,17)) + theme(legend.title = element_blank()) + theme(legend.position = "top") + theme(legend.text=element_text(size=12)) + theme(plot.margin=unit(c(0,0,0,0),"mm")) + geom_text_repel(aes(label=Survey), colour="grey", size=5, vjust=1, hjust=1.5)
 ```
 
-
 ```{r new plot for Birdlife Australia talk}
 ggplot(WG.3dMDS.bySyst.pts, aes(x=MDS1, y=MDS2, shape=System, colour=System)) + xlim(-0.5, 0.5) + ylim(-0.4, 0.4) + coord_fixed(ratio = 1) + geom_point(size=7) + scale_color_manual(values=c("blue","red")) + scale_shape_manual(values=c(15,17)) + theme(plot.margin=unit(c(0,0,0,0),"mm")) + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank()) + theme(axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) + theme(legend.title = element_blank()) + theme(legend.position = "none")
 ```
-
-
-
-
 
 #### Simper analysis to extract species separating Warden versus Gore
 ```{r}
