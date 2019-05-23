@@ -258,6 +258,15 @@ the Nov 2018 and Feb 2019 surveys are within the range of community compositions
 ggplot(WG.3dMDS.bySyst.pts, aes(x=MDS1, y=MDS2, shape=SystSeas, colour=SystSeas)) + xlim(-0.5, 0.4) + ylim(-0.3, 0.3) + coord_fixed(ratio = 1) + geom_point(size=5) + scale_color_manual(values=c("blue","blue","red","red")) + scale_shape_manual(values=c(0,15,2,17)) + theme(legend.title = element_blank()) + theme(legend.position = "top") + theme(legend.text=element_text(size=12)) + theme(plot.margin=unit(c(0,0,0,0),"mm")) + geom_text_repel(aes(label=Survey), colour="grey", size=5, vjust=1, hjust=1.5)
 ```
 
+
+```{r new plot for Birdlife Australia talk}
+ggplot(WG.3dMDS.bySyst.pts, aes(x=MDS1, y=MDS2, shape=System, colour=System)) + xlim(-0.5, 0.5) + ylim(-0.4, 0.4) + coord_fixed(ratio = 1) + geom_point(size=7) + scale_color_manual(values=c("blue","red")) + scale_shape_manual(values=c(15,17)) + theme(plot.margin=unit(c(0,0,0,0),"mm")) + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank()) + theme(axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) + theme(legend.title = element_blank()) + theme(legend.position = "none")
+```
+
+
+
+
+
 #### Simper analysis to extract species separating Warden versus Gore
 ```{r}
   WG.bySyst.Sim <- simper(WG.bySystem.m, WG.3dMDS.bySyst.pts$System) #Simper analysis to determine which species best correlated with differences between systems
@@ -880,3 +889,29 @@ ggplot(Gore.stack.spr, aes(x=reorder(Survey, SurvOrd), y=Count, fill=Group)) + g
 Gore.stack.sum <- Gore.stack.agg[Gore.stack.agg$Season=="summer", ] #cut down to just summer data
 ggplot(Gore.stack.sum, aes(x=reorder(Survey, SurvOrd), y=Count, fill=Group)) + geom_bar(stat="identity", colour = "black") + scale_y_continuous(breaks = seq(0,22500, by=2500), limits=c(0,22500)) + labs(x="Survey", y="Abundance") + theme (axis.text.x=element_text(angle=90)) + theme(axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0))) + theme(axis.title.x = element_text(margin = margin(t = 20, r = 0, b = 0, l = 0))) + scale_fill_manual(values = c("#CD9B9B","#912CEE","#104E8B","#698B22","#00EEEE","#A2B5CD","#FFA500","#FFE1FF","#B4CDCD","#C1FFc1","#A52A2A")) #uses Date to reorder survey on x axis #
 ```
+
+## Import data for species x species analysis
+```{r}
+Species <- read.csv("./raw_data/Warden_Gore_by_suite_06_19.csv")
+Species <- Species[-grep("Unidentified", Species$CommonName), ] #remove rows where birds not identified
+Species <- Species[Species$System=="Warden", ] #cut down to just Warden wetlands
+Species <- Species[-grep("Grassbird", Species$CommonName), ] #remove records of little grassbird
+  Species <- Species[!(Species$Date == "23/02/2010" & Species$SiteCode == "WRP004"), ] #remove duplicate data for Mullet Feb 2010
+  Species$Date <- as.Date(Species$Date, format="%d/%m/%Y")
+  Species$Survey <- Species$Date #create Survey field from Date
+  Species$Survey <- format(as.Date(Species$Survey), "%b-%Y") #change format to mmm-YYYY
+  Species$Survey <- gsub("Oct-2018", "Nov-2018", Species$Survey) #lump survey dates that straddle Oct/Nov 2018 and call them Nov-2018
+  yq <- as.yearqtr(as.yearmon(Species$Date, "%Y/%m/%d")) #create a temporary season field
+Species$Season <- factor(format(yq, "%q"), levels = 1:4, labels = c("summer", "autumn", "winter", "spring")) #create Season (spring vs summer) variable
+  Species.sum <- Species[Species$Season == "summer", ] #summer only data
+  Species.spr <- Species[Species$Season == "spring", ] #spring only data
+```
+
+
+```{r}
+sp.id <- "Chestnut Teal"
+sp.selected <- Species[Species$CommonName == sp.id, ]
+sp.selected <- sp.selected[order(sp.selected$Date), ]
+write.csv(sp.selected, file = sp.id)
+```
+
