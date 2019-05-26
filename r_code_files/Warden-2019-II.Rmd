@@ -14,8 +14,8 @@ RStudio: Version 1.1.463 – © 2009-2018 RStudio, Inc. R version: `r getRversio
 Date and time: `r Sys.time()`
 
 Uses the following datafiles:  
-*  Warden_Gore_by_suite_06_19.csv (System,	SurveyType,	SiteName,	SiteCode,	Subsite	Date,	CommonName,	SpeciesCode,	Count) (e.g. Warden,	aerial,	Neridup Suite,	WRP001,	combined,	11/10/2006,	Great Egret,	greg,	1)
-*  Average depths.csv (average depths of Warden wetlands for each survey period).
+*  Warden_Gore_by_suite_06_19.csv (System,	SurveyType,	SiteName,	SiteCode,	Subsite	Date,	CommonName,	SpeciesCode,	Count) (e.g. Warden,	aerial,	Neridup Suite,	WRP001,	combined,	11/10/2006,	Great Egret,	greg,	1). Note some double counts for Oct 2006 and Feb 2015 removed.
+*  Average depths.csv (average depths, rainfall variables and pipeline operation and timing of surveys of Warden wetlands for each survey period).
 *  Taxonomy (CommonName, Order and informal group name in consecutive columns. CommonNames match those in rden_Gore_by_suite_06_19.csv)
 
 Date and time: `r Sys.time()`
@@ -47,7 +47,7 @@ source("./functions/bv.step.R")
   
 The following is the output from an Rmarkdown R script for analyses of waterbird communities of the Warden and Gore wetland systems surveyed between Oct 2006 and Feb 2019.  
   
-These analyses are based primarily on ground counts. Aerial counts are only for a few Warden system wetlands in 2006 to 2009 where ground counts were not undertaken. These include Neridup and Bandy Creek (Oct 2006-Nov 2008), Ewans (Oct 2006) and Ewans and Mullet combined (Nov 2008 - have to ignore Nov 2008 Mullet ground counts), North Wheatfield (Oct 2006, Oct 2007, Nov 2008). Note that the Nov 2008 aerial data was collected two weeks prior to the ground counts.  Gore data is included only for November 2009 onwards when ground counts are available. Pink Lake is excluded from analyses because it wasnt consistently surveyed. Birds counted only while in air and not allocated to any particular wetland are given the site code 'In flight'. These conditions apply to all following analyses.  
+These analyses are based primarily on ground counts. Aerial counts are only for a few Warden system wetlands in 2006 to 2009 where ground counts were not undertaken. These include Neridup and Bandy Creek (Oct 2006-Nov 2008), Ewans (Oct 2006) and Ewans and Mullet combined (Nov 2008 - have to ignore Nov 2008 Mullet ground counts), North Wheatfield (Oct 2006, Oct 2007, Nov 2008). Note that the Nov 2008 aerial data was collected two weeks prior to the ground counts.  Gore data is included only for November 2009 onwards when ground counts are available. Some replicate count data for Oct 2006 and feb 2015 (North Wheatfield) are excluded from the dataset above prior to import. Pink Lake is excluded from analyses because it wasnt consistently surveyed. Birds counted only while in air and not allocated to any particular wetland are given the site code 'In flight'. These conditions apply to all following analyses.  
   
 ##Multi-variate analysis of Warden and Gore combined waterbird data by season  
 
@@ -95,8 +95,6 @@ surv.seas <- surv.seas[order(surv.seas$Survey), ] #reorder alphabetically by Sur
   WG.MDS.bySeas.pts$Survey <- row.names(WG.MDS.bySeas.pts) #use survey period as row.names
   WG.MDS.bySeas.pts$Season <- surv.seas[match(WG.MDS.bySeas.pts$Survey, surv.seas$Survey), 2] #adds 'season' (spring versus summer) (from column '2' of Surv.Seas) to ordination points by matching survey between points and surv.seas
 ```
- 
-
  
 ####2D ordination plot of Warden and Gore data combined by season.
 The ordination below shows that, by and large, with data from systems (Warden and Gore) combined, there is a difference between waterbird communities present in spring and those present in late summer. 
@@ -256,12 +254,13 @@ The ordination plot below shows that the Warden and Gore wetland systems consist
 the Nov 2018 and Feb 2019 surveys are within the range of community compositions surveyed since 2006 for both systems, despite the very high counts in Feb 2019 and low Warden count in Nov 2018.
 
 ```{r}
-ggplot(WG.3dMDS.bySyst.pts, aes(x=MDS1, y=MDS2, shape=SystSeas, colour=SystSeas)) + xlim(-0.5, 0.4) + ylim(-0.3, 0.3) + coord_fixed(ratio = 1) + geom_point(size=5) + scale_color_manual(values=c("blue","blue","red","red")) + scale_shape_manual(values=c(0,15,2,17)) + theme(legend.title = element_blank()) + theme(legend.position = "top") + theme(legend.text=element_text(size=12)) + theme(plot.margin=unit(c(0,0,0,0),"mm")) + geom_text_repel(aes(label=Survey), colour="grey", size=5, vjust=1, hjust=1.5)
+ggplot(WG.3dMDS.bySyst.pts, aes(x=MDS1, y=MDS2, shape=SystSeas, colour=SystSeas)) + xlim(min(WG.3dMDS.bySyst.pts$MDS1)*1.3,max(WG.3dMDS.bySyst.pts$MDS1)*1.3) + ylim(min(WG.3dMDS.bySyst.pts$MDS2)*1.3,max(WG.3dMDS.bySyst.pts$MDS2)*1.3) + coord_fixed(ratio = 1) + geom_point(size=5) + scale_color_manual(values=c("blue","blue","red","red")) + scale_shape_manual(values=c(0,15,2,17)) + theme(legend.title = element_blank()) + theme(legend.position = "top") + theme(legend.text=element_text(size=12)) + theme(plot.margin=unit(c(0,0,0,0),"mm")) + geom_text_repel(aes(label=Survey), colour="grey", size=5, vjust=1, hjust=1.5)
 ```
 
-```{r new plot for Birdlife Australia talk}
-ggplot(WG.3dMDS.bySyst.pts, aes(x=MDS1, y=MDS2, shape=System, colour=System)) + xlim(-0.5, 0.5) + ylim(-0.4, 0.4) + coord_fixed(ratio = 1) + geom_point(size=7) + scale_color_manual(values=c("blue","red")) + scale_shape_manual(values=c(15,17)) + theme(plot.margin=unit(c(0,0,0,0),"mm")) + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank()) + theme(axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) + theme(legend.title = element_blank()) + theme(legend.position = "none")
+```{r new-plot-for-Birdlife-talk}
+ggplot(WG.3dMDS.bySyst.pts, aes(x=MDS1, y=MDS2, shape=SystSeas, colour=SystSeas)) + xlim(min(WG.3dMDS.bySyst.pts$MDS1)*1.3,max(WG.3dMDS.bySyst.pts$MDS1)*1.3) + ylim(min(WG.3dMDS.bySyst.pts$MDS2)*1.3,max(WG.3dMDS.bySyst.pts$MDS2)*1.3) + coord_fixed(ratio = 1) + geom_point(size=5) + scale_color_manual(values=c("black","black","black","black")) + scale_shape_manual(values=c(15,15,15,15)) + theme(legend.title = element_blank()) + theme(legend.position = "top") + theme(legend.text=element_text(size=12)) + theme(plot.margin=unit(c(0,0,0,0),"mm")) + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank()) + theme(axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) + theme(legend.title = element_blank()) + theme(legend.position = "none")
 ```
+
 
 #### Simper analysis to extract species separating Warden versus Gore
 ```{r}
@@ -277,20 +276,20 @@ summary(WG.bySyst.Sim, ordered=TRUE)
   WG.bySyst.Sim.ext <- cbind(WG.bySyst.Sim.spec, WG.bySyst.Sim.average) #combine average with species name
   WG.bySyst.Sim.ext <- WG.bySyst.Sim.ext[ order(-WG.bySyst.Sim.ext[,2]), ] #order by average value
 colnames(WG.bySyst.Sim.ext) = c("Species", "cont") #add new column names
-  WG.bySyst.Sim.ext <- as.vector(WG.bySyst.Sim.ext[1:10, 1]) #extract top eight species: first 8 rows
+  WG.bySyst.Sim.ext <- as.vector(WG.bySyst.Sim.ext[1:10, 1]) #extract top 10 species: first 10 rows
   #WG.bySyst.Sim.ext <- gsub("\\.", " ", WG.bySyst.Sim.ext)
+  WG.bySyst.Sim.ext
 ```
 
 #### Extract count data for top 10 species
 ```{r}
-WG.bySystem$Count2 <- WG.bySystem$Count^2
-agg.spec.data.2 <- aggregate(data=WG.bySystem, Count2 ~ CommonName + Survey + System, FUN="sum") #aggregare count data by system and survey
+agg.spec.data.2 <- aggregate(data=WG.bySystem, Count ~ CommonName + Survey + System, FUN="sum") #aggregare count data by system and survey
 #agg.spec.data.2 <- as.data.frame(sapply(agg.spec.data.2, gsub, pattern = "-", replacement = " ")) #replace dashes in species names with spaces to match simper output
 agg.spec.data.2 <- agg.spec.data.2[agg.spec.data.2$CommonName %in% WG.bySyst.Sim.ext, ] #restrict aggregated counts to just those top 8 species from simper
 rownames(agg.spec.data.2) <- NULL
 agg.spec.data.2$CommonName <- as.character(agg.spec.data.2$CommonName)
 colnames(agg.spec.data.2)[4] <- "Abundance"
-write.csv(agg.spec.data.2, "agg.spec.data.2.csv")
+write.csv(agg.spec.data.2, "./analysis_data/agg.spec.data.2.csv")
 agg.spec.data.2 <- read.csv("agg.spec.data.2.csv")
 ```
 
@@ -313,7 +312,6 @@ ttest.v
 ttest.results <- data.frame(CommonName=WG.bySyst.Sim.ext, p.value=ttest.v)
 ttest.results
 ```
-
 
 ##WARDEN SYSTEM ANALYSIS ONLY  
 
@@ -439,9 +437,9 @@ for (i in 1:ncol(BEdat.spr2)){
 ####Ordination graphs of Warden system waterbird communities by survey with surveys undertaken in spring and summer scaled and coloured by average depth of gauged wetlands  
 ```{r}
 #summer
-ggplot(Warden.sum.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.7, 0.7) + ylim(-0.7, 0.7) + coord_fixed(ratio = 1) + geom_point(aes(size = BEdat.sum.st$Depth, colour=BEdat.sum.st$Depth)) + scale_size(range = c(3, 12)) + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none")
+ggplot(Warden.sum.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.4, 0.3) + ylim(-0.2, 0.2) + coord_fixed(ratio = 1) + geom_point(aes(size = BEdat.sum$Depth, colour=BEdat.sum$Depth)) + scale_size(range = c(9,20)) + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none")
 #spring
-ggplot(Warden.spr.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.3, 0.3) + ylim(-0.3, 0.3) + coord_fixed(ratio = 1) + geom_point(aes(size = BEdat.spr.st$Depth, colour=BEdat.spr.st$Depth)) + scale_size(range = c(3, 12)) + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none") + scale_x_reverse(limits=c(0.3, -0.3))
+ggplot(Warden.spr.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(min(Warden.spr.MDS.pts$MDS1), max(Warden.spr.MDS.pts$MDS1)) + ylim(min(Warden.spr.MDS.pts$MDS2), max(Warden.spr.MDS.pts$MDS2)) + coord_fixed(ratio = 1) + geom_point(cex=8) + scale_size(range = c(3, 12)) + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none") + scale_x_reverse(limits=c(0.3, -0.3)) + theme(legend.title = element_blank()) + theme(legend.position = "top") + theme(legend.text=element_text(size=12)) + theme(plot.margin=unit(c(0,0,0,0),"mm")) + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank()) + theme(axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) + theme(legend.title = element_blank()) + theme(legend.position = "none")
 ```
 
 ####Create euclidean distance matrices for datasets to be used to partial bioenv analysis
@@ -487,12 +485,12 @@ Warden.spr.msq <- sqrt(Warden.spr.m) #sqrt dataset since bv.step (as opposed to 
 Warden.spr.bio <- bv.step(Warden.spr.msq, Warden.spr.msq, scale.fix=FALSE, scale.var=FALSE, fix.dist.method = "bray", var.dist.method = "bray", max.rho=0.95, min.delta.rho=0.01, output.best=10, num.restarts = 100)
 Warden.spr.bio
 #note: warnings are not important, see http://menugget.blogspot.com/2011/06/clarke-and-ainsworths-bioenv-and-bvstep.html
-spring.species <- c("Australian.Shelduck","Banded.Stilt","Grey.Teal","Pacific.Black.Duck","Red.necked.Stint","Silver.Gull","Straw.necked.Ibis")
-Warden.spr8 <- Warden.spr.m[, spring.species] # create new survey x specie matrix with the 8 species from the bv.step analysis
-write.csv(Warden.spr8, "./analysis_data/Warden 8 species.csv")
-Warden.spr8.m <- vegdist(sqrt(Warden.spr8), method= "bray") #create dissimilarity matrix for just 8 species, for use in mantel tests
+spring.species <- c("Australian.Shelduck","Banded.Stilt","Grey.Teal","Pacific.Black.Duck","Red.necked.Stint","Silver.Gull","Red.necked.Avocet")
+Warden.spr7 <- Warden.spr.m[, spring.species] # create new survey x specie matrix with the 8 species from the bv.step analysis
+write.csv(Warden.spr7, "./analysis_data/Warden 7 species.csv")
+Warden.spr7.m <- vegdist(sqrt(Warden.spr7), method= "bray") #create dissimilarity matrix for just 8 species, for use in mantel tests
 Warden.spr.md <- vegdist(sqrt(Warden.spr.m), method = "bray") #calculate Warden spring 
-mantel(Warden.spr.md, Warden.spr8.m, method="pearson", permutations=999) #mantel test to determine permutational significance
+mantel(Warden.spr.md, Warden.spr7.m, method="pearson", permutations=999) #mantel test to determine permutational significance
 
 Warden.sprsp.m <- Warden.spr.msq[, spring.species] #extract just the 8 species for spring with square root abundances (because the ordination being used for the envfit (below) was performed on square root distances
 
@@ -514,15 +512,15 @@ Warden.sumsp.m <- Warden.sum.msq[, summer.species] #extract just the 8 species f
 ```{r}
 #spring
 #test individual variables
-mod1 <- capscale(Warden.spr.m ~ Depth, BEdat.spr, dist="bray") #test individual variables (use BEdat.spr2 to include Pipeline_days
+mod1 <- capscale(Warden.spr.m ~ CDM3MO_MYRUP, BEdat.spr.st2, dist="bray") #test individual variables (use BEdat.spr2 to include Pipeline_days
 mod1
 anova(mod1) #signif of individual variable
 #stepwise model procedure with 'pipeline' data partialled out
-mod2 <- capscale(Warden.spr.m ~ Depth + CDM3MO_ESPER + CDM6MO_ESPER + CDM12MO_ESPER + CDM3MO_EAERO + CDM6MO_EAERO + CDM12MO_EAERO + CDM3MO_MYRUP + CDM6MO_MYRUP + CDM12MO_MYRUP + Condition(Pipeline_days), BEdat.spr2, dist="bray") #full model
-mod0 <- capscale(Warden.spr.m ~ 1, BEdat.spr2, dist="bray") #Null model
+mod2 <- capscale(Warden.spr.m ~ Depth + CDM3MO_ESPER + CDM6MO_ESPER + CDM12MO_ESPER + CDM3MO_EAERO + CDM6MO_EAERO + CDM12MO_EAERO + CDM3MO_MYRUP + CDM6MO_MYRUP + CDM12MO_MYRUP + Pipeline_days, BEdat.spr.st2, dist="bray") #full model
+mod0 <- capscale(Warden.spr.m ~ 1, BEdat.spr.st2, dist="bray") #Null model
 ind <- ordistep(mod0, scope = formula(mod2), perm.max = 999) #stepwise model build from all
 anova(ind) #signif of stepwise model
-mod3 <- capscale(Warden.spr.m ~ CDM12MO_ESPER + CDM12MO_EAERO + Depth, BEdat.spr, dist ="bray") #model selected by ordistep
+mod3 <- capscale(Warden.spr.m ~ CDM12MO_EAERO, BEdat.spr.st2, dist ="bray") #model selected by ordistep
 mod3 #view results of stepwise model
 anova(mod3) #signif or stepwise model
 #build db-RDA plot from components
@@ -534,14 +532,14 @@ anova(mod3) #signif or stepwise model
 
 
 #summer
-mod1 <- capscale(Warden.sum.m ~ Depth, BEdat.sum, dist="bray") #test individual variables
+mod1 <- capscale(Warden.sum.m ~ Days, Surv.sum, dist="bray") #test individual variables
 mod1
 anova(mod1) #signif of individual variable
-mod2 <- capscale(Warden.sum.m ~ ., BEdat.sum, dist="bray") #full model
-mod0 <- capscale(Warden.sum.m ~ 1, BEdat.sum, dist="bray") #Null model
+mod2 <- capscale(Warden.sum.m ~ ., BEdat.sum.st, dist="bray") #full model
+mod0 <- capscale(Warden.sum.m ~ 1, BEdat.sum.st, dist="bray") #Null model
 ind <- ordistep(mod0, scope = formula(mod2), perm.max = 999) #stepwise model build from all
 anova(ind) #signif of stepwise model
-mod3 <- capscale(Warden.sum.m ~ CDM6MO_MYRUP, BEdat.sum, dist ="bray")
+mod3 <- capscale(Warden.sum.m ~ CDM6MO_MYRUP, BEdat.sum.st, dist ="bray")
 mod3
 ```
 
@@ -694,11 +692,6 @@ Warden.stack.rich$Season <- factor(format(yq, "%q"), levels = 1:4, labels = c("s
 ```{r import-taxonomy-data-and-add-Group-to-Warden-data}
 Taxonomy <- read.csv("./raw_data/Taxonomy.csv")
 Warden.stack.rich$Group <- Taxonomy[match(Warden.stack.rich$CommonName, Taxonomy$CommonName), 3]
-```
-
-```{r}
-duplicate.spp <- count(Warden.stack.rich, c("CommonName","Survey","SiteCode","Subsite")) #count no. species
-write.csv(duplicate.spp, "./analysis_data/duplicatespp.csv")
 ```
 
 ####Aggregate counts by common name, then count number of species within groups
