@@ -673,7 +673,7 @@ Warden.stack.sum <- Warden.stack.sum[ order(Warden.stack.sum$SurvOrd), ]
 ggplot(Warden.stack.sum, aes(x=reorder(Survey, SurvOrd), y=Count, fill=Group)) + geom_bar(stat="identity", colour = "black") + scale_y_continuous(breaks = seq(0,30000, by=5000), limits=c(0,30000)) + labs(x="Survey", y="Abundance") + theme (axis.text.x=element_text(angle=90)) + theme(axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0))) + theme(axis.title.x = element_text(margin = margin(t = 20, r = 0, b = 0, l = 0))) + scale_fill_manual(values = c("#CD9B9B","#912CEE","#104E8B","#698B22","#00EEEE","#A2B5CD","#FFA500","#FFE1FF","#B4CDCD","#C1FFc1","#A52A2A")) #uses Date to reorder survey on x axis
 ```
 
-###Stacked column plots for species richness
+###Stacked column plots for species richness at Warden
 ```{r}
 Warden.stack.rich <- read.csv("./raw_data/Warden_Gore_by_suite_06_19.csv")
 write.csv(Warden.stack.rich, "Warden.stack.rich.csv")
@@ -720,7 +720,8 @@ Warden.stack.rich$SurvOrd <- as.numeric(str_replace_all(Warden.stack.rich$SurvOr
 
 #### stacked richness column plots for Warden by season
 ```{r}
-Warden.stack.rich.spr <- Warden.stack.rich[Warden.stack.rich$Season=="spring", ] #cut down to just spring data
+Warden.stack.rich.spr <- Warden.stack.rich[Warden.stack.rich$Season=="spring", ]
+#cut down to just spring data
 Warden.stack.rich.spr <- Warden.stack.rich.spr[order(Warden.stack.rich.spr$SurvOrd), ]
 ggplot(Warden.stack.rich.spr, aes(x=reorder(Survey, SurvOrd), y=freq, fill=Group)) + geom_bar(stat="identity", colour = "black") + scale_y_continuous(breaks = seq(0,50, by=10), limits=c(0,50)) + labs(x="Survey", y="Number of species") + theme (axis.text.x=element_text(angle=90)) + theme(axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0))) + theme(axis.title.x = element_text(margin = margin(t = 20, r = 0, b = 0, l = 0))) + scale_fill_manual(values = c("#CD9B9B","#912CEE","#104E8B","#698B22","#00EEEE","#A2B5CD","#FFA500","#FFE1FF","#B4CDCD","#C1FFc1","#A52A2A"))
 
@@ -729,9 +730,6 @@ Warden.stack.rich.sum <- Warden.stack.rich[Warden.stack.rich$Season=="summer", ]
 Warden.stack.rich.sum <- Warden.stack.rich.sum[ order(Warden.stack.rich.sum$SurvOrd), ]
 ggplot(Warden.stack.rich.sum, aes(x=reorder(Survey, SurvOrd), y=freq, fill=Group)) + geom_bar(stat="identity", colour = "black") + scale_y_continuous(breaks = seq(0,50, by=10), limits=c(0,50)) + labs(x="Survey", y="Number of species") + theme (axis.text.x=element_text(angle=90)) + theme(axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0))) + theme(axis.title.x = element_text(margin = margin(t = 20, r = 0, b = 0, l = 0))) + scale_fill_manual(values = c("#CD9B9B","#912CEE","#104E8B","#698B22","#00EEEE","#A2B5CD","#FFA500","#FFE1FF","#B4CDCD","#C1FFc1","#A52A2A"))
 ```
-
-
-
 
 ### Esperance rainfall for Warden wetlands
 ```{r}
@@ -749,7 +747,7 @@ labels
 ggplot(rainfall, aes(x = Month.2, y = CDMM, colour=Station)) + geom_line() + theme (axis.text.x=element_text(angle=90)) + scale_x_date(breaks=databreaks, labels = labels)
 ```
 
-###calculate total abundances per survey by season
+###Calculate total abundances per survey by season
 ```{r calculate spring total waterbird-abundances}
 
 #spring
@@ -761,6 +759,31 @@ write.csv(Warden.spr.yearsums, "./analysis_data/warden_spr_yearsums.csv")
 Warden.sum$year <- lubridate::year(Warden.sum$Date)
 Warden.sum.yearsums <- aggregate(data=Warden.sum, Count ~ year + year, FUN="sum")
 write.csv(Warden.sum.yearsums, "./analysis_data/warden_sum_yearsums.csv")
+```
+
+### Import data for species x species analysis
+```{r}
+Species <- read.csv("./raw_data/Warden_Gore_by_suite_06_19.csv")
+Species <- Species[-grep("Unidentified", Species$CommonName), ] #remove rows where birds not identified
+Species <- Species[Species$System=="Warden", ] #cut down to just Warden wetlands
+Species <- Species[-grep("Grassbird", Species$CommonName), ] #remove records of little grassbird
+  Species <- Species[!(Species$Date == "23/02/2010" & Species$SiteCode == "WRP004"), ] #remove duplicate data for Mullet Feb 2010
+  Species$Date <- as.Date(Species$Date, format="%d/%m/%Y")
+  Species$Survey <- Species$Date #create Survey field from Date
+  Species$Survey <- format(as.Date(Species$Survey), "%b-%Y") #change format to mmm-YYYY
+  Species$Survey <- gsub("Oct-2018", "Nov-2018", Species$Survey) #lump survey dates that straddle Oct/Nov 2018 and call them Nov-2018
+  yq <- as.yearqtr(as.yearmon(Species$Date, "%Y/%m/%d")) #create a temporary season field
+Species$Season <- factor(format(yq, "%q"), levels = 1:4, labels = c("summer", "autumn", "winter", "spring")) #create Season (spring vs summer) variable
+  Species.sum <- Species[Species$Season == "summer", ] #summer only data
+  Species.spr <- Species[Species$Season == "spring", ] #spring only data
+```
+
+#### extract data for particular species
+```{r}
+sp.id <- "Chestnut Teal"
+sp.selected <- Species[Species$CommonName == sp.id, ]
+sp.selected <- sp.selected[order(sp.selected$Date), ]
+write.csv(sp.selected, file = sp.id)
 ```
 
 ##GORE SYSTEM ANALYSIS ONLY 
@@ -957,68 +980,109 @@ xmin <- min(Gore.spr.MDS.pts.2$MDS1)*1.3
 xmax <- max(Gore.spr.MDS.pts.2$MDS1)*1.3
 ymin <- min(Gore.spr.MDS.pts.2$MDS2)*1.3
 ymax <- max(Gore.spr.MDS.pts.2$MDS2)*1.3
-ggplot(Gore.spr.MDS.pts.2, aes(x=MDS1, y=MDS2)) + xlim(xmin, xmax) + ylim(ymin, ymax) + coord_fixed(ratio = 1) + geom_point(size = Gore.spr.bio.4.abund$Grey.Teal/150) + geom_text(aes(label = Label), cex=3, vjust=2, hjust=1.6) + theme(legend.position = "none")
+ggplot(Gore.spr.MDS.pts.2, aes(x=MDS1, y=MDS2)) + xlim(xmin, xmax) + ylim(ymin, ymax) + coord_fixed(ratio = 1) + geom_point(size = Gore.spr.bio.4.abund$Black.Swan/250) + geom_text(aes(label = Label), cex=3, vjust=2, hjust=1.6) + theme(legend.position = "none")
 ```
 
-###Stacked column plots for Gore system waterbirds
+###Stacked abundance column plots for Gore system waterbirds
 ```{r}
-input.data4 <- read.csv("./raw_data/Warden_Gore_by_suite_06_19.csv")
-Gore.stack <- input.data4
+input.data3 <- read.csv("./raw_data/Warden_Gore_by_suite_06_19.csv")
+Gore.stack <- input.data3
 Gore.stack <- Gore.stack[Gore.stack$System=="Gore", ] #cut down to just Gore.stack wetlands
+  Gore.stack <- Gore.stack[!(Gore.stack$Date == "23/02/2010" & Gore.stack$SiteCode == "WRP004"), ] #remove duplicate data for Mullet Feb 2010
   Gore.stack$Date <- as.Date(Gore.stack$Date, format="%d/%m/%Y")
   Gore.stack$Survey <- Gore.stack$Date #create Survey field from Date
   Gore.stack$Survey <- format(as.Date(Gore.stack$Survey), "%b-%Y") #change format to mmm-YYYY
   Gore.stack$Survey <- gsub("Oct-2018", "Nov-2018", Gore.stack$Survey) #lump survey dates that straddle Oct/Nov 2018 and call them Nov-2018
   yq <- as.yearqtr(as.yearmon(Gore.stack$Date, "%Y/%m/%d")) #create a temporary season field
 Gore.stack$Season <- factor(format(yq, "%q"), levels = 1:4, labels = c("summer", "autumn", "winter", "spring"))
-Gore.stack$SurvOrd <- as.character(Gore.stack$Survey)
-Gore.stack$SurvOrd <- as.numeric(str_replace_all(Gore.stack$SurvOrd, c("Feb-2008" = "1", "Feb-2010" = "2", "Feb-2011" = "3","Feb-2012" = "4", "Feb-2013" = "5", "Feb-2014" = "6", "Feb-2015" = "7", "Feb-2019" = "8", "Oct-2006" = "1", "Oct-2007" = "2", "Nov-2008" = "3", "Nov-2009" = "4", "Nov-2010" = "5", "Dec-2011" = "6", "Oct-2012" = "7", "Nov-2013"= "8", "Nov-2014" = "9", "Nov-2018" = "10")))
 ```
 
-####Add taxonomic group to Gore.stack to enable graphing by group
-```{r}
-Gore.stack$Group <- Taxonomy[match(Gore.stack$CommonName, Taxonomy$CommonName), 3] #assumes loaded taxonomy table earlier in analyses
+#### Import taxonomic framework
+```{r import-taxonomy-data-and-add-Group-to-Gore-data}
+Taxonomy <- read.csv("./raw_data/Taxonomy.csv")
+Gore.stack$Group <- Taxonomy[match(Gore.stack$CommonName, Taxonomy$CommonName), 3]
 ```
 
-#### Aggregate Gore count data by taxonomic group
+#### Aggregate data by taxonomic group and survey, with survey and season variables for plotting
+plus add dummy dates for years not surveyed
 ```{r}
-Gore.stack.agg <- aggregate(data=Gore.stack, Count ~ Group + SurvOrd + Survey + Season, FUN="sum") #aggregate count data by species and survey
-Gore.stack.agg.gp <- aggregate(data=Gore.stack.agg, Count ~ Group + Survey, FUN="sum")
+Gore.stack.agg <- aggregate(data=Gore.stack, Count ~ Group + Survey + Season, FUN="sum") #aggregate count data by species and survey
+#create dummy data for missing survey years for spring and summer
+md.Group <- rep("Grebes", times = 6)
+md.Survey <- c("Nov-2015","Nov-2016","Nov-2017","Feb-2016","Feb-2017","Feb-2018")
+md.Season <- c(rep("spring", times = 3), rep("summer", times = 3))
+md.Count <- rep(0, times = 6)
+Missing.dates <- data.frame(md.Group, md.Survey, md.Season, md.Count)
+colnames(Missing.dates) <- c("Group","Survey","Season","Count")
+Gore.stack.agg <- rbind(Gore.stack.agg, Missing.dates)
+Gore.stack.agg$SurvOrd <- as.character(Gore.stack.agg$Survey)
+Gore.stack.agg$SurvOrd <- as.numeric(str_replace_all(Gore.stack.agg$SurvOrd, c("Feb-2010" = "1", "Feb-2011" = "2", "Feb-2012" = "3", "Feb-2013" = "4", "Feb-2014" = "5", "Feb-2015" = "6", "Feb-2016" = "7", "Feb-2017" = "8", "Feb-2018" = "9", "Feb-2019" = "10", "Nov-2009" = "1", "Nov-2010" = "2", "Dec-2011" = "3", "Oct-2012" = "4", "Nov-2013"= "5", "Nov-2014" = "6", "Nov-2015" = "7", "Nov-2016" = "8", "Nov-2017" = "9", "Nov-2018" = "10")))
 ```
 
-#### Spring and summer stacked abundance plots by season for Gore
+#### stacked column plots for Gore by season
 ```{r}
-#spring
 Gore.stack.spr <- Gore.stack.agg[Gore.stack.agg$Season=="spring", ] #cut down to just spring data
-ggplot(Gore.stack.spr, aes(x=reorder(Survey, SurvOrd), y=Count, fill=Group)) + geom_bar(stat="identity", colour = "black") + scale_y_continuous(breaks = seq(0,25000, by=2500), limits=c(0,22500)) + labs(x="Survey", y="Abundance") + theme (axis.text.x=element_text(angle=90)) + theme(axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0))) + theme(axis.title.x = element_text(margin = margin(t = 20, r = 0, b = 0, l = 0))) + scale_fill_manual(values = c("#CD9B9B","#912CEE","#104E8B","#698B22","#00EEEE","#FFA500","#FFE1FF","#B4CDCD","#C1FFc1","#A52A2A")) #uses Date to reorder survey on x axis
+Gore.stack.spr <- Gore.stack.spr[ order(Gore.stack.spr$SurvOrd), ]
+ggplot(Gore.stack.spr, aes(x=reorder(Survey, SurvOrd), y=Count, fill=Group)) + geom_bar(stat="identity", colour = "black") + scale_y_continuous(breaks = seq(0,25000, by=2500), limits=c(0,25000)) + labs(x="Survey", y="Abundance") + theme (axis.text.x=element_text(angle=90)) + theme(axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0))) + theme(axis.title.x = element_text(margin = margin(t = 20, r = 0, b = 0, l = 0))) + scale_fill_manual(values = c("#CD9B9B","#912CEE","#104E8B","#698B22","#00EEEE","#FFA500","#FFE1FF","#B4CDCD","#C1FFc1","#A52A2A"))
 
 #summer
 Gore.stack.sum <- Gore.stack.agg[Gore.stack.agg$Season=="summer", ] #cut down to just summer data
-ggplot(Gore.stack.sum, aes(x=reorder(Survey, SurvOrd), y=Count, fill=Group)) + geom_bar(stat="identity", colour = "black") + scale_y_continuous(breaks = seq(0,22500, by=2500), limits=c(0,22500)) + labs(x="Survey", y="Abundance") + theme (axis.text.x=element_text(angle=90)) + theme(axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0))) + theme(axis.title.x = element_text(margin = margin(t = 20, r = 0, b = 0, l = 0))) + scale_fill_manual(values = c("#CD9B9B","#912CEE","#104E8B","#698B22","#00EEEE","#A2B5CD","#FFA500","#FFE1FF","#B4CDCD","#C1FFc1","#A52A2A")) #uses Date to reorder survey on x axis #
+Gore.stack.sum <- Gore.stack.sum[ order(Gore.stack.sum$SurvOrd), ]
+ggplot(Gore.stack.sum, aes(x=reorder(Survey, SurvOrd), y=Count, fill=Group)) + geom_bar(stat="identity", colour = "black") + scale_y_continuous(breaks = seq(0,25000, by=2500), limits=c(0,25000)) + labs(x="Survey", y="Abundance") + theme (axis.text.x=element_text(angle=90)) + theme(axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0))) + theme(axis.title.x = element_text(margin = margin(t = 20, r = 0, b = 0, l = 0))) + scale_fill_manual(values = c("#CD9B9B","#912CEE","#104E8B","#698B22","#00EEEE","#A2B5CD","#FFA500","#FFE1FF","#B4CDCD","#C1FFc1","#A52A2A")) #uses Date to reorder survey on x axis
 ```
 
-## Import data for species x species analysis
+###Stacked column plots for species richness at Gore
 ```{r}
-Species <- read.csv("./raw_data/Warden_Gore_by_suite_06_19.csv")
-Species <- Species[-grep("Unidentified", Species$CommonName), ] #remove rows where birds not identified
-Species <- Species[Species$System=="Warden", ] #cut down to just Warden wetlands
-Species <- Species[-grep("Grassbird", Species$CommonName), ] #remove records of little grassbird
-  Species <- Species[!(Species$Date == "23/02/2010" & Species$SiteCode == "WRP004"), ] #remove duplicate data for Mullet Feb 2010
-  Species$Date <- as.Date(Species$Date, format="%d/%m/%Y")
-  Species$Survey <- Species$Date #create Survey field from Date
-  Species$Survey <- format(as.Date(Species$Survey), "%b-%Y") #change format to mmm-YYYY
-  Species$Survey <- gsub("Oct-2018", "Nov-2018", Species$Survey) #lump survey dates that straddle Oct/Nov 2018 and call them Nov-2018
-  yq <- as.yearqtr(as.yearmon(Species$Date, "%Y/%m/%d")) #create a temporary season field
-Species$Season <- factor(format(yq, "%q"), levels = 1:4, labels = c("summer", "autumn", "winter", "spring")) #create Season (spring vs summer) variable
-  Species.sum <- Species[Species$Season == "summer", ] #summer only data
-  Species.spr <- Species[Species$Season == "spring", ] #spring only data
+Gore.stack.rich <- read.csv("./raw_data/Warden_Gore_by_suite_06_19.csv")
+write.csv(Gore.stack.rich, "Gore.stack.rich.csv")
+Gore.stack.rich <- Gore.stack.rich[Gore.stack.rich$System=="Gore", ] #cut down to just Gore wetlands
+Gore.stack.rich <- Gore.stack.rich[-grep("Unidentified", Gore.stack.rich$CommonName), ] #remove rows where birds not identified
+  Gore.stack.rich$Date <- as.Date(Gore.stack.rich$Date, format="%d/%m/%Y")
+  Gore.stack.rich$Survey <- Gore.stack.rich$Date #create Survey field from Date
+  Gore.stack.rich$Survey <- format(as.Date(Gore.stack.rich$Survey), "%b-%Y") #change format to mmm-YYYY
+  Gore.stack.rich$Survey <- gsub("Oct-2018", "Nov-2018", Gore.stack.rich$Survey) #lump survey dates that straddle Oct/Nov 2018 and call them Nov-2018
+  yq <- as.yearqtr(as.yearmon(Gore.stack.rich$Date, "%Y/%m/%d")) #create a temporary season field
+Gore.stack.rich$Season <- factor(format(yq, "%q"), levels = 1:4, labels = c("summer", "autumn", "winter", "spring"))
 ```
 
-#### extract data for particular species
+#### Import taxonomic framework
+```{r import-taxonomy-data-and-add-Group-to-Gore-data}
+Taxonomy <- read.csv("./raw_data/Taxonomy.csv")
+Gore.stack.rich$Group <- Taxonomy[match(Gore.stack.rich$CommonName, Taxonomy$CommonName), 3]
+```
+
+####create matrix for examining data
 ```{r}
-sp.id <- "Chestnut Teal"
-sp.selected <- Species[Species$CommonName == sp.id, ]
-sp.selected <- sp.selected[order(sp.selected$Date), ]
-write.csv(sp.selected, file = sp.id)
+Gore_matrix <- acast(Gore.stack.rich, Group + CommonName ~ Survey, value.var="Count", fun.aggregate = sum) #sums counts for each species and survey
+write.csv(Gore_matrix, "./analysis_data/Gore_matrix.csv")
 ```
 
+####Aggregate counts by common name, then count number of species within groups
+```{r}
+Gore.stack.rich <- aggregate(data=Gore.stack.rich, Count ~ CommonName + Group + Survey + Season, FUN="sum") #aggregate count data by species and survey
+Gore.stack.rich <- Gore.stack.rich[, c("Survey","Group","Season")] #restrict data to 3 columns
+Gore.stack.rich <- count(Gore.stack.rich, c("Group","Survey","Season")) #count no. species
+#craete dummy years
+md.Group <- rep("Grebes", times = 6)
+md.Survey <- c("Nov-2015","Nov-2016","Nov-2017","Feb-2016","Feb-2017","Feb-2018")
+md.Season <- c(rep("spring", times = 3), rep("summer", times = 3))
+md.freq <- rep(0, times = 6)
+Missing.dates <- data.frame(md.Group, md.Survey, md.Season, md.freq)
+colnames(Missing.dates) <- c("Group","Survey","Season","freq")
+Gore.stack.rich <- rbind(Gore.stack.rich, Missing.dates)
+Gore.stack.rich$SurvOrd <- as.character(Gore.stack.rich$Survey)
+Gore.stack.rich$SurvOrd <- as.numeric(str_replace_all(Gore.stack.rich$SurvOrd, c("Feb-2010" = "1", "Feb-2011" = "2", "Feb-2012" = "3", "Feb-2013" = "4", "Feb-2014" = "5", "Feb-2015" = "6", "Feb-2016" = "7", "Feb-2017" = "8", "Feb-2018" = "9", "Feb-2019" = "10", "Nov-2009" = "1", "Nov-2010" = "2", "Dec-2011" = "3", "Oct-2012" = "4", "Nov-2013"= "5", "Nov-2014" = "6", "Nov-2015" = "7", "Nov-2016" = "8", "Nov-2017" = "9", "Nov-2018" = "10")))
+```
+
+#### stacked richness column plots for Gore by season
+```{r}
+Gore.stack.rich.spr <- Gore.stack.rich[Gore.stack.rich$Season=="spring", ]
+#cut down to just spring data
+Gore.stack.rich.spr <- Gore.stack.rich.spr[order(Gore.stack.rich.spr$SurvOrd), ]
+ggplot(Gore.stack.rich.spr, aes(x=reorder(Survey, SurvOrd), y=freq, fill=Group)) + geom_bar(stat="identity", colour = "black") + scale_y_continuous(breaks = seq(0,40, by=10), limits=c(0,40)) + labs(x="Survey", y="Number of species") + theme (axis.text.x=element_text(angle=90)) + theme(axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0))) + theme(axis.title.x = element_text(margin = margin(t = 20, r = 0, b = 0, l = 0))) + scale_fill_manual(values = c("#CD9B9B","#912CEE","#104E8B","#698B22","#00EEEE","#FFA500","#FFE1FF","#B4CDCD","#C1FFc1","#A52A2A"))
+
+#summer
+Gore.stack.rich.sum <- Gore.stack.rich[Gore.stack.rich$Season=="summer", ] #cut down to just summer data
+Gore.stack.rich.sum <- Gore.stack.rich.sum[ order(Gore.stack.rich.sum$SurvOrd), ]
+ggplot(Gore.stack.rich.sum, aes(x=reorder(Survey, SurvOrd), y=freq, fill=Group)) + geom_bar(stat="identity", colour = "black") + scale_y_continuous(breaks = seq(0,40, by=10), limits=c(0,40)) + labs(x="Survey", y="Number of species") + theme (axis.text.x=element_text(angle=90)) + theme(axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0))) + theme(axis.title.x = element_text(margin = margin(t = 20, r = 0, b = 0, l = 0))) + scale_fill_manual(values = c("#CD9B9B","#912CEE","#104E8B","#698B22","#00EEEE","#A2B5CD","#FFA500","#FFE1FF","#B4CDCD","#C1FFc1","#A52A2A"))
+```
