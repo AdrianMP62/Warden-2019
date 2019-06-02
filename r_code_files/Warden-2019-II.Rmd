@@ -337,13 +337,13 @@ Warden$Season <- factor(format(yq, "%q"), levels = 1:4, labels = c("summer", "au
 
 ####Create a matrix for checking counts - this not used in analysis
 ```{r}
-Warden_matrix <- acast(Warden, CommonName~Survey, value.var="Count", fun.aggregate = sum) #sums counts for each species and survey
-write.csv(Warden_matrix, "./raw_data/Warden_matrix.csv")
+Warden_matrix <- acast(Warden, CommonName ~ Survey, value.var="Count", fun.aggregate = sum) #sums counts for each species and survey
+write.csv(Warden_matrix, "./analysis_data/Warden_matrix.csv")
 ```
 
 ####Aggregate count data by just common name and survey for creating season matrices
 ```{r}
-Warden.sum.agg <- aggregate(data=Warden.sum, Count ~ CommonName + Survey, FUN="sum") #aggregate count data by species and survey
+Warden.sum.agg <- aggregate(data=Warden.sum, Count ~ CommonName, FUN="sum") #aggregate count data by species and survey
 #Warden.sum.agg$Count <- sqrt(Warden.sum.agg$Count) removed sqrt because metaMDS routine in vegan transforms species abundance data is required.
 Warden.spr.agg<- aggregate(data=Warden.spr, Count ~ CommonName + Survey, FUN="sum") #aggregate count data by species and survey
 #Warden.spr.agg$Count <- sqrt(Warden.spr.agg$Count) removed sqrt because metaMDS routine in vegan transforms species abundance data is required.
@@ -353,7 +353,7 @@ Warden.spr.agg<- aggregate(data=Warden.spr, Count ~ CommonName + Survey, FUN="su
 ```{r}
 #summer
 Warden.sum.m <- melt(Warden.sum.agg)
-Warden.sum.m <- dcast(Warden.sum.m, Survey ~ CommonName, fill="0")
+Warden.sum.m <- dcast(Warden.sum.m, Survey ~ CommonName + , fill="0")
 rownames(Warden.sum.m) <- Warden.sum.m[,1]
 Warden.sum.m[,1] <- NULL
 write.csv(Warden.sum.m, "Warden_sum_m.csv")
@@ -678,8 +678,9 @@ ggplot(Warden.stack.sum, aes(x=reorder(Survey, SurvOrd), y=Count, fill=Group)) +
 Warden.stack.rich <- read.csv("./raw_data/Warden_Gore_by_suite_06_19.csv")
 write.csv(Warden.stack.rich, "Warden.stack.rich.csv")
 Warden.stack.rich <- Warden.stack.rich[Warden.stack.rich$System=="Warden", ] #cut down to just Warden.stack.rich wetlands
+Warden.stack.rich <- Warden.stack.rich[-grep("Unidentified", Warden.stack.rich$CommonName), ] #remove rows where birds not identified
 Warden.stack.rich <- Warden.stack.rich[-grep("Grassbird", Warden.stack.rich$CommonName), ] #remove records of little grassbird
-  Warden.stack.rich <- Warden.stack.rich[!(Warden.stack.rich$Date == "23/02/2010" & Warden.stack.rich$SiteCode == "WRP004"), ] #remove duplicate data for Mullet Feb 2010
+Warden.stack.rich <- Warden.stack.rich[!(Warden.stack.rich$Date == "23/02/2010" & Warden.stack.rich$SiteCode == "WRP004"), ] #remove duplicate data for Mullet Feb 2010
   Warden.stack.rich$Date <- as.Date(Warden.stack.rich$Date, format="%d/%m/%Y")
   Warden.stack.rich$Survey <- Warden.stack.rich$Date #create Survey field from Date
   Warden.stack.rich$Survey <- format(as.Date(Warden.stack.rich$Survey), "%b-%Y") #change format to mmm-YYYY
@@ -692,6 +693,12 @@ Warden.stack.rich$Season <- factor(format(yq, "%q"), levels = 1:4, labels = c("s
 ```{r import-taxonomy-data-and-add-Group-to-Warden-data}
 Taxonomy <- read.csv("./raw_data/Taxonomy.csv")
 Warden.stack.rich$Group <- Taxonomy[match(Warden.stack.rich$CommonName, Taxonomy$CommonName), 3]
+```
+
+####create matrix for examining data
+```{r}
+Warden_matrix <- acast(Warden.stack.rich, Group+CommonName ~ Survey, value.var="Count", fun.aggregate = sum) #sums counts for each species and survey
+write.csv(Warden_matrix, "./analysis_data/Warden_matrix.csv")
 ```
 
 ####Aggregate counts by common name, then count number of species within groups
@@ -771,16 +778,15 @@ input.data5 <- read.csv("./raw_data/Warden_Gore_by_suite_06_19.csv")
 Gore <- input.data5
 Gore <- Gore[-grep("Unidentified", Gore$CommonName), ] #remove rows where birds not identified
 Gore <- Gore[Gore$System=="Gore", ] #cut down to just Gore wetlands
-  Gore$Date <- as.Date(Gore$Date, format="%d/%m/%Y")
-  Gore$Survey <- Gore$Date #create Survey field from Date
-  Gore$Survey <- format(as.Date(Gore$Survey), "%b-%Y") #change format to mmm-YYYY
-  yq <- as.yearqtr(as.yearmon(Gore$Date, "%Y/%m/%d")) #create a temporary season field
-  yq
+Gore$Date <- as.Date(Gore$Date, format="%d/%m/%Y")
+Gore$Survey <- Gore$Date #create Survey field from Date
+Gore$Survey <- format(as.Date(Gore$Survey), "%b-%Y") #change format to mmm-YYYY
+yq <- as.yearqtr(as.yearmon(Gore$Date, "%Y/%m/%d")) #create a temporary season field
 Gore$Season <- factor(format(yq, "%q"), levels = 1:4, labels = c("summer", "autumn", "winter", "spring")) #create Season (spring vs summer) variable
-  Gore.sum <- Gore[Gore$Season == "summer", ] #summer only data
-  Gore.sum$Group <- Taxonomy[match(Gore.sum$CommonName, Taxonomy$CommonName), 3]
-  Gore.spr <- Gore[Gore$Season == "spring", ] #spring only data
-  Gore.spr$Group <- Taxonomy[match(Gore.spr$CommonName, Taxonomy$CommonName), 3]
+Gore.sum <- Gore[Gore$Season == "summer", ] #summer only data
+Gore.sum$Group <- Taxonomy[match(Gore.sum$CommonName, Taxonomy$CommonName), 3]
+Gore.spr <- Gore[Gore$Season == "spring", ] #spring only data
+Gore.spr$Group <- Taxonomy[match(Gore.spr$CommonName, Taxonomy$CommonName), 3]
 ```
 
 ####Create a matrix for checking counts - this not used in analysis
@@ -793,9 +799,7 @@ write.csv(Gore_matrix, "./analysis_data/Gore_matrix.csv")
 ####Aggregate count data by just common name and survey for creating season matrices
 ```{r}
 Gore.sum.agg <- aggregate(data=Gore.sum, Count ~ CommonName + Survey, FUN="sum") #aggregate count data by species and survey
-#Gore.sum.agg$Count <- sqrt(Gore.sum.agg$Count) removed sqrt because metaMDS routine in vegan transforms species abundance data is required.
 Gore.spr.agg<- aggregate(data=Gore.spr, Count ~ CommonName + Survey, FUN="sum") #aggregate count data by species and survey
-#Gore.spr.agg$Count <- sqrt(Gore.spr.agg$Count) removed sqrt because metaMDS routine in vegan transforms species abundance data is required.
 ```
 
 ####Create waterbird matrices by season
@@ -816,10 +820,18 @@ write.csv(Gore.spr.m, "./analysis_data/Gore_spr_m.csv")
 Gore.spr.m <- read.csv("./analysis_data/Gore_spr_m.csv", row.names=1)
 ```
 
-####2D MDS unconstrained ordination of Gore surveys by each season
+####2D MDS unconstrained ordinations with vegan plots of Gore surveys by each season based on sqrt counts or raw counts
 ```{r}
-#summer
+#summer - sqrt abundance
 Gore.sum.m.sqrt <- sqrt(Gore.sum.m)
+Gore.sum.MDS.sqrt <- metaMDS(Gore.sum.m.sqrt, distance = "bray", k=2, autotransform = FALSE)
+plot(Gore.sum.MDS.sqrt, display = "sites", cex=5, xlim=c(-0.7, 0.5))
+points(Gore.sum.MDS.sqrt, display = "species", cex=2, col="red")
+text(Gore.sum.MDS.sqrt, display = "sites", cex=1, col="blue")
+text(Gore.sum.MDS.sqrt, display = "species", cex=1)
+stressplot(Gore.sum.MDS.sqrt)
+
+#summer - raw abundance - which does not work - produces degenerate ordination.
 Gore.sum.MDS <- metaMDS(Gore.sum.m, distance = "bray", k=2, autotransform = FALSE)
 plot(Gore.sum.MDS, display = "sites", cex=5, xlim=c(-0.7, 0.5))
 points(Gore.sum.MDS, display = "species", cex=2, col="red")
@@ -827,8 +839,16 @@ text(Gore.sum.MDS, display = "sites", cex=1, col="blue")
 text(Gore.sum.MDS, display = "species", cex=1)
 stressplot(Gore.sum.MDS)
 
-#spring
+#spring - sqrt abundance
 Gore.spr.m.sqrt <- sqrt(Gore.spr.m)
+Gore.spr.MDS.sqrt <- metaMDS(Gore.spr.m.sqrt, distance = "bray", k=2, autotransform = FALSE) #use Gore.spr.m (raw abundances) or Gore.spr.m.sqrt (sqrt transformed abundances)
+Gore.spr.spscores.sqrt <- scores(Gore.spr.MDS.sqrt, display=c("species"))
+plot(Gore.spr.MDS.sqrt)
+text(Gore.spr.MDS.sqrt, display="sites", cex=0.8)
+text(Gore.spr.MDS.sqrt, display="species", cex=0.8)
+stressplot(Gore.spr.MDS.sqrt)
+
+#spring - raw abundance
 Gore.spr.MDS <- metaMDS(Gore.spr.m, distance = "bray", k=2, autotransform = FALSE) #use Gore.spr.m (raw abundances) or Gore.spr.m.sqrt (sqrt transformed abundances)
 Gore.spr.spscores <- scores(Gore.spr.MDS, display=c("species"))
 plot(Gore.spr.MDS)
@@ -838,13 +858,19 @@ stressplot(Gore.spr.MDS)
 ```
 
 ####Extract ordination point data for ggplots for metaMDS
+Note - need to ensure the right ordination has been run (above), i.e. sqrt or raw count data
 ```{r}
-Gore.sum.MDS.pts <- as.data.frame(Gore.sum.MDS$points) #extract coordinates from ordination
-Gore.sum.MDS.pts$Survey <- row.names(Gore.sum.MDS.pts) #add survey variable from row names
-Gore.sum.MDS.pts$Survey <- as.yearmon(Gore.sum.MDS.pts$Survey, "%b-%Y") #convert survey to date format using package zoo
-Gore.sum.MDS.pts <- Gore.sum.MDS.pts[order(as.Date(Gore.sum.MDS.pts$Survey, format="%b-%Y")),] #order by Survey date
+#summer #sqrt only
+Gore.sum.MDS.sqrt.pts <- as.data.frame(Gore.sum.MDS.sqrt$points) #extract coordinates from ordination
+Gore.sum.MDS.sqrt.pts$Label2 <- row.names(Gore.sum.MDS.sqrt.pts) #add survey name from row names and call variable Label2 so that species names can be added later
+Gore.sum.MDS.sqrt.pts$Label2 <- as.yearmon(Gore.sum.MDS.sqrt.pts$Label, "%b-%Y") #convert label to date format using package zoo
+Gore.sum.MDS.sqrt.pts <- Gore.sum.MDS.sqrt.pts[order(as.Date(Gore.sum.MDS.sqrt.pts$Label2, format="%b-%Y")),] #order by Survey date
+Gore.sum.MDS.sqrt.pts$Label <- as.character(Gore.sum.MDS.sqrt.pts$Label2) #convert Survey to character name and create new variable 'Label'
+Gore.sum.MDS.sqrt.pts$Type <- "Survey" #add data type (survey here and species later)
+Gore.sum.MDS.sqrt.pts$Label2 <- NULL 
+Gore.sum.MDS.sqrt.spscores <- as.data.frame(scores(Gore.sum.MDS, display = "species")) #extract species scores for later restricting to bio-bio (bv.step) outcome
 
-#spring
+#spring - raw counts
 Gore.spr.MDS.pts <- as.data.frame(Gore.spr.MDS$points) #extract coordinates from ordination
 Gore.spr.MDS.pts$Label2 <- row.names(Gore.spr.MDS.pts) #add survey name from row names and call variable Label2 so that species names can be added later
 Gore.spr.MDS.pts$Label2 <- as.yearmon(Gore.spr.MDS.pts$Label, "%b-%Y") #convert label to date format using package zoo
@@ -853,50 +879,85 @@ Gore.spr.MDS.pts$Label <- as.character(Gore.spr.MDS.pts$Label2) #convert Survey 
 Gore.spr.MDS.pts$Type <- "Survey" #add data type (survey here and species later)
 Gore.spr.MDS.pts$Label2 <- NULL 
 Gore.spr.MDS.spscores <- as.data.frame(scores(Gore.spr.MDS, display = "species")) #extract species scores for later restricting to bio-bio (bv.step) outcome
+
+#spring - sqrt counts
+Gore.spr.MDS.sqrt.pts <- as.data.frame(Gore.spr.MDS.sqrt$points) #extract coordinates from ordination
+Gore.spr.MDS.sqrt.pts$Label2 <- row.names(Gore.spr.MDS.sqrt.pts) #add survey name from row names and call variable Label2 so that species names can be added later
+Gore.spr.MDS.sqrt.pts$Label2 <- as.yearmon(Gore.spr.MDS.sqrt.pts$Label, "%b-%Y") #convert label to date format using package zoo
+Gore.spr.MDS.sqrt.pts <- Gore.spr.MDS.sqrt.pts[order(as.Date(Gore.spr.MDS.sqrt.pts$Label2, format="%b-%Y")),] #order by Survey date
+Gore.spr.MDS.sqrt.pts$Label <- as.character(Gore.spr.MDS.sqrt.pts$Label2) #convert Survey to character name and create new variable 'Label'
+Gore.spr.MDS.sqrt.pts$Type <- "Survey" #add data type (survey here and species later)
+Gore.spr.MDS.sqrt.pts$Label2 <- NULL 
+Gore.spr.MDS.sqrt.spscores <- as.data.frame(scores(Gore.spr.MDS, display = "species")) #extract species scores for later restricting to bio-bio (bv.step) outcome
+
 ```
 
-#### Bio-bio analysis of spring waterbird species
+####Ordination graphs of Gore system waterbird communities by survey with surveys undertaken in spring and summer
 ```{r}
+#summer sqrt data
+xmin <- min(Gore.sum.MDS.sqrt.pts$MDS1)*1.3
+xmax <- max(Gore.sum.MDS.sqrt.pts$MDS1)*1.3
+ymin <- min(Gore.sum.MDS.sqrt.pts$MDS2)*1.3
+ymax <- max(Gore.sum.MDS.sqrt.pts$MDS2)*1.3
+ggplot(Gore.sum.MDS.sqrt.pts, aes(x=MDS1, y=MDS2)) + xlim(xmin, xmax) + ylim(ymin, ymax) + coord_fixed(ratio = 1) + geom_point(cex=8) + geom_text(aes(label = Label), cex=3, vjust=2, hjust=1.6) + theme(legend.position = "none")
+
+#spring raw count data
+Gore.spr.MDS.pts.2 <- Gore.spr.MDS.pts
+Gore.spr.MDS.pts.2$Label <- gsub(' ', '-', Gore.spr.MDS.pts.2$Label) #in Survey replace space with dash
+Gore.spr.MDS.pts.2$Label <- paste("01-", Gore.spr.MDS.pts.2$Label, sep = "") #add dummy day to Survey
+Gore.spr.MDS.pts.2$Label <- as.Date(Gore.spr.MDS.pts.2$Label, format = "%d-%b-%Y") #change survey to date
+Gore.spr.MDS.pts.2<- Gore.spr.MDS.pts.2[order(Gore.spr.MDS.pts.2$Label), ] #order by date
+xmin <- min(Gore.spr.MDS.pts.2$MDS1)*1.3
+xmax <- max(Gore.spr.MDS.pts.2$MDS1)*1.3
+ymin <- min(Gore.spr.MDS.pts.2$MDS2)*1.3
+ymax <- max(Gore.spr.MDS.pts.2$MDS2)*1.3
+ggplot(Gore.spr.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(xmin, xmax) + ylim(ymin, ymax) + coord_fixed(ratio = 1) + geom_point(cex=8) + geom_text(aes(label = Label), cex=3, vjust=2, hjust=1.6) + theme(legend.position = "none") + geom_path()
+
+#spring sqrt count data
+Gore.spr.MDS.sqrt.pts.2 <- Gore.spr.MDS.sqrt.pts
+Gore.spr.MDS.sqrt.pts.2$Label <- gsub(' ', '-', Gore.spr.MDS.sqrt.pts.2$Label) #in Survey replace space with dash
+Gore.spr.MDS.sqrt.pts.2$Label <- paste("01-", Gore.spr.MDS.sqrt.pts.2$Label, sep = "") #add dummy day to Survey
+Gore.spr.MDS.sqrt.pts.2$Label <- as.Date(Gore.spr.MDS.sqrt.pts.2$Label, format = "%d-%b-%Y") #change survey to date
+Gore.spr.MDS.sqrt.pts.2<- Gore.spr.MDS.sqrt.pts.2[order(Gore.spr.MDS.sqrt.pts.2$Label), ] #order by date
+xmin <- min(Gore.spr.MDS.sqrt.pts.2$MDS1)*1.3
+xmax <- max(Gore.spr.MDS.sqrt.pts.2$MDS1)*1.3
+ymin <- min(Gore.spr.MDS.sqrt.pts.2$MDS2)*1.3
+ymax <- max(Gore.spr.MDS.sqrt.pts.2$MDS2)*1.3
+ggplot(Gore.spr.MDS.sqrt.pts, aes(x=MDS1, y=MDS2)) + xlim(xmin, xmax) + ylim(ymin, ymax) + coord_fixed(ratio = 1) + geom_point(cex=8) + geom_text(aes(label = Label), cex=3, vjust=2, hjust=1.6) + theme(legend.position = "none") + geom_path()
+```
+
+#### Bio-bio analysis of spring waterbird species (raw count data)
+```{r}
+# use bv.stepo to undertake bio-bio analysis and extract ordination coordinates for the 4 species
 Gore.spr.bio <- bv.step(Gore.spr.m, Gore.spr.m, scale.fix=FALSE, scale.var=FALSE, fix.dist.method = "bray", var.dist.method = "bray", max.rho=0.95, min.delta.rho=0.01, output.best=10, num.restarts = 100)
 #note: warnings are not important, see http://menugget.blogspot.com/2011/06/clarke-and-ainsworths-bioenv-and-bvstep.html
 Gore.spr.bio
-
 Gore.spring.species <- c("Australian.Shelduck","Banded.Stilt","Grey.Teal","Black.Swan") #4 top species from bv.step
-Gore.spr.bio.4 <- Gore.spr.MDS.spscores[Gore.spring.species, ] # extract species scores for these 4 species from ordination
-Gore.spr.bio.4$Species <- row.names(Gore.spr.bio.4) #create new species variable
-Gore.spr.bio.4$Type <- "Species" #add data type
-colnames(Gore.spr.bio.4) <- c("MDS1", "MDS2","Label","Type")
-Gore.spr.bio.4.abund.2 <- Gore.spr.bio.4.abund[order(row.names(Gore.spr.bio.4.abund)), ] #create new 4 species file reordered by row names for mantel test
-Gore.spr.bio.4.dist <- vegdist(Gore.spr.bio.4.abund.2, method = "bray")
-Gore.spr.m.dist <- vegdist(Gore.spr.m, method = "bray")
-mantel(Gore.spr.m.dist, Gore.spr.bio.4.dist, method="pearson", permutations=999) #mantel test to determine permutational significance
-```
+#Gore.spr.bio.4 <- Gore.spr.MDS.spscores[Gore.spring.species, ] # extract species scores for these 4 species from ordination
+#Gore.spr.bio.4$Species <- row.names(Gore.spr.bio.4) #create new species variable
+#Gore.spr.bio.4$Type <- "Species" #add data type
+#colnames(Gore.spr.bio.4) <- c("MDS1", "MDS2","Label","Type")
 
-#### merge site and restrcited species scores from bv.step
-```{r}
-Gore.spr.MDS.pts <- rbind(Gore.spr.MDS.pts, Gore.spr.bio.4) 
-```
-
-#### extract abundances for 4 species from spring bio-env analysis
-```{r}
+#extract abundances for 4 species from spring bio-env analysis
 Gore.spr.bio.4.abund <- Gore.spr.m[, Gore.spring.species]
 Gore.spr.bio.4.abund$Label2 <- row.names(Gore.spr.bio.4.abund) #add survey name from row names and call variable Label2 so that species names can be added later
 Gore.spr.bio.4.abund$Label2 <- as.yearmon(Gore.spr.bio.4.abund$Label, "%b-%Y") #convert label to date format using package zoo
-Gore.spr.bio.4.abund <- Gore.spr.bio.4.abund[order(as.Date(Gore.spr.bio.4.abund$Label2, format="%b-%Y")),] #order by Survey date
 Gore.spr.bio.4.abund$Label2 <- NULL 
 #Gore.spring.bio.4.abund <- normalize(Gore.spr.bio.4.abund, method = "range", range = c(0, 1), margin=2)
+
+
+Gore.spr.bio.4.dist <- vegdist(Gore.spr.bio.4.abund, method = "bray") #B-C dissimilarity matrix of 4 species
+Gore.spr.m.dist <- vegdist(Gore.spr.m, method = "bray") # B-C dissimilarity matrix of all species - raw count data
+mantel(Gore.spr.m.dist, Gore.spr.bio.4.dist, method="pearson", permutations=999) #mantel test to determine permutational significance
 ```
 
-####Ordination graphs of Gore system waterbird communities by survey with surveys undertaken in spring and summer scaled and coloured by average depth of gauged wetlands  
+#ordination plots of Gore spring surveys (based on raw coiunt data) scaled by species abundances
 ```{r}
-#summer
-ggplot(Gore.sum.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.75, 0.5) + ylim(-0.35, 0.35) + coord_fixed(ratio = 1) + geom_point(cex=8) + geom_path() + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none")
-
-#spring - with species scores
-#ggplot(Gore.spr.MDS.pts, aes(x=MDS1, y=MDS2, group=Type, colour=Type, size=Type)) + xlim(-0.7, 0.5) + ylim(-0.4, 0.25) + coord_fixed(ratio = 1) + geom_point() + scale_color_manual(values=c("blue","red")) + scale_size_manual(values=c(2,6)) + geom_text(aes(label = Label), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none")
-
-#spring with scaling of survey points to species abundance (specify symbol size with Gore.spr.bio.4.abund$[species])
-ggplot(Gore.spr.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.5, 0.5) + ylim(-0.3, 0.3) + coord_fixed(ratio = 1) + geom_point(cex=Gore.spr.bio.4.abund$Banded.Stilt/200) + geom_text(aes(label = Label), cex=3, vjust=2, hjust=1.6) + theme(legend.position = "none")
+xmin <- min(Gore.spr.MDS.pts.2$MDS1)*1.3
+xmax <- max(Gore.spr.MDS.pts.2$MDS1)*1.3
+ymin <- min(Gore.spr.MDS.pts.2$MDS2)*1.3
+ymax <- max(Gore.spr.MDS.pts.2$MDS2)*1.3
+ggplot(Gore.spr.MDS.pts.2, aes(x=MDS1, y=MDS2)) + xlim(xmin, xmax) + ylim(ymin, ymax) + coord_fixed(ratio = 1) + geom_point(size = Gore.spr.bio.4.abund$Grey.Teal/150) + geom_text(aes(label = Label), cex=3, vjust=2, hjust=1.6) + theme(legend.position = "none")
 ```
 
 ###Stacked column plots for Gore system waterbirds
@@ -916,7 +977,7 @@ Gore.stack$SurvOrd <- as.numeric(str_replace_all(Gore.stack$SurvOrd, c("Feb-2008
 
 ####Add taxonomic group to Gore.stack to enable graphing by group
 ```{r}
-Gore.stack$Group <- Taxonomy[match(Gore.stack$CommonName, Taxonomy$CommonName), 3]
+Gore.stack$Group <- Taxonomy[match(Gore.stack$CommonName, Taxonomy$CommonName), 3] #assumes loaded taxonomy table earlier in analyses
 ```
 
 #### Aggregate Gore count data by taxonomic group
@@ -953,7 +1014,7 @@ Species$Season <- factor(format(yq, "%q"), levels = 1:4, labels = c("summer", "a
   Species.spr <- Species[Species$Season == "spring", ] #spring only data
 ```
 
-
+#### extract data for particular species
 ```{r}
 sp.id <- "Chestnut Teal"
 sp.selected <- Species[Species$CommonName == sp.id, ]
