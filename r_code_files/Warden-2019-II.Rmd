@@ -1086,3 +1086,20 @@ Gore.stack.rich.sum <- Gore.stack.rich[Gore.stack.rich$Season=="summer", ] #cut 
 Gore.stack.rich.sum <- Gore.stack.rich.sum[ order(Gore.stack.rich.sum$SurvOrd), ]
 ggplot(Gore.stack.rich.sum, aes(x=reorder(Survey, SurvOrd), y=freq, fill=Group)) + geom_bar(stat="identity", colour = "black") + scale_y_continuous(breaks = seq(0,40, by=10), limits=c(0,40)) + labs(x="Survey", y="Number of species") + theme (axis.text.x=element_text(angle=90)) + theme(axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0))) + theme(axis.title.x = element_text(margin = margin(t = 20, r = 0, b = 0, l = 0))) + scale_fill_manual(values = c("#CD9B9B","#912CEE","#104E8B","#698B22","#00EEEE","#A2B5CD","#FFA500","#FFE1FF","#B4CDCD","#C1FFc1","#A52A2A"))
 ```
+
+#Create ground survey matrix
+```{r}
+WGdata <- read.csv("./raw_data/Warden_Gore_by_suite_06_19.csv")
+WGdata$SSD <- paste(WGdata$SiteCode, WGdata$Subsite, WGdata$Date, sep=" ")
+WGdata <-WGdata[WGdata$SurveyType == "ground", ]
+ground.data <- as.data.frame(acast(WGdata, CommonName ~ SSD, value.var="Count")) #sums counts for each species and survey
+names <- row.names(ground.data)
+ground.data <- as.data.frame(t(ground.data))
+ground.data$SSD <- row.names(ground.data)
+ground.data$Site <- substr(ground.data$SSD, start=1, stop=6)
+```
+
+
+
+
+
