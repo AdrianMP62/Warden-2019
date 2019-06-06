@@ -16,7 +16,7 @@ Date and time: `r Sys.time()`
 Uses the following datafiles:  
 *  Warden_Gore_by_suite_06_19.csv (System,	SurveyType,	SiteName,	SiteCode,	Subsite	Date,	CommonName,	SpeciesCode,	Count) (e.g. Warden,	aerial,	Neridup Suite,	WRP001,	combined,	11/10/2006,	Great Egret,	greg,	1). Note some double counts for Oct 2006 and Feb 2015 removed.
 *  Average depths.csv (average depths, rainfall variables and pipeline operation and timing of surveys of Warden wetlands for each survey period).
-*  Taxonomy (CommonName, Order and informal group name in consecutive columns. CommonNames match those in rden_Gore_by_suite_06_19.csv)
+*  Taxonomy (CommonName, Order and informal group name in consecutive columns. CommonNames match those in Warden_Gore_by_suite_06_19.csv)
 
 Date and time: `r Sys.time()`
 
@@ -1091,14 +1091,18 @@ ggplot(Gore.stack.rich.sum, aes(x=reorder(Survey, SurvOrd), y=freq, fill=Group))
 ```{r}
 WGdata <- read.csv("./raw_data/Warden_Gore_by_suite_06_19.csv")
 WGdata$SSD <- paste(WGdata$SiteCode, WGdata$Subsite, WGdata$Date, sep=" ")
-WGdata <-WGdata[WGdata$SurveyType == "ground", ]
-ground.data <- as.data.frame(acast(WGdata, CommonName ~ SSD, value.var="Count")) #sums counts for each species and survey
-names <- row.names(ground.data)
-ground.data <- as.data.frame(t(ground.data))
-ground.data$SSD <- row.names(ground.data)
-ground.data$Site <- substr(ground.data$SSD, start=1, stop=6)
+ground.data <-WGdata[WGdata$SurveyType == "ground", ]
+ground.data.W <- ground.data[ground.data$System == "Warden", ]
+ground.data.W <- as.data.frame(acast(ground.data.W, CommonName ~ SSD, value.var="Count")) #sums counts for each species and survey
+ground.data.W <- as.data.frame(t(ground.data.W))
+ground.data.W$SSD <- row.names(ground.data.W)
+ground.data.W$Site <- substr(ground.data.W$SSD, start=1, stop=6)
+write.csv(t(ground.data.W, "./analysis_data/ground-data-W.csv"))
 ```
 
+```{r}
+Taxonomy <- read.csv("./raw_data/Taxonomy.csv")
+```
 
 
 
