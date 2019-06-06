@@ -27,15 +27,15 @@ Date and time: `r Sys.time()`
 knitr::opts_knit$set(root.dir = '../') 
 ```
 
-```{r prevent-scientific notation for numbers}
-options(scipen=999)
+```{r}
+options(scipen=999) #  prevent-scientific notation for numbers
 ```
 
-```{r set-seed}
+```{r}
 set.seed(1234)
 ```
 
-```{r load-packages}
+```{r}
 Packages <- c("vegan", "ggrepel", "grid","ggplot2", "plyr", "scales","lubridate", "stringr", "gsubfn", "reshape2", "knitr", "simba", "zoo", "car")
 lapply(Packages, library, character.only = TRUE)
 source("./functions/bio_env_ext.R") #The Bio_env and bv_step_ext routines below comes from http://menugget.blogspot.com.au/2011/06/clarke-and-ainsworths-bioenv-and-bvstep.html
@@ -98,7 +98,7 @@ surv.seas <- surv.seas[order(surv.seas$Survey), ] #reorder alphabetically by Sur
  
 ####2D ordination plot of Warden and Gore data combined by season.
 The ordination below shows that, by and large, with data from systems (Warden and Gore) combined, there is a difference between waterbird communities present in spring and those present in late summer. 
-```{r, 2D-ordination-plot-by-season, include=TRUE}
+```{r}
 Xmin <- min(WG.MDS.bySeas.pts$MDS1)*1.3
 Xmax <- max(WG.MDS.bySeas.pts$MDS1)*1.3
 Ymin <- min(WG.MDS.bySeas.pts$MDS2)*1.3
@@ -353,7 +353,7 @@ Warden.spr.agg<- aggregate(data=Warden.spr, Count ~ CommonName + Survey, FUN="su
 ```{r}
 #summer
 Warden.sum.m <- melt(Warden.sum.agg)
-Warden.sum.m <- dcast(Warden.sum.m, Survey ~ CommonName + , fill="0")
+Warden.sum.m <- dcast(Warden.sum.m, Survey ~ CommonName, fill="0")
 rownames(Warden.sum.m) <- Warden.sum.m[,1]
 Warden.sum.m[,1] <- NULL
 write.csv(Warden.sum.m, "Warden_sum_m.csv")
@@ -640,7 +640,7 @@ Warden.stack$Season <- factor(format(yq, "%q"), levels = 1:4, labels = c("summer
 ```
 
 #### Import taxonomic framework
-```{r import-taxonomy-data-and-add-Group-to-Warden-data}
+```{r}
 Taxonomy <- read.csv("./raw_data/Taxonomy.csv")
 Warden.stack$Group <- Taxonomy[match(Warden.stack$CommonName, Taxonomy$CommonName), 3]
 ```
@@ -690,7 +690,7 @@ Warden.stack.rich$Season <- factor(format(yq, "%q"), levels = 1:4, labels = c("s
 ```
 
 #### Import taxonomic framework
-```{r import-taxonomy-data-and-add-Group-to-Warden-data}
+```{r}
 Taxonomy <- read.csv("./raw_data/Taxonomy.csv")
 Warden.stack.rich$Group <- Taxonomy[match(Warden.stack.rich$CommonName, Taxonomy$CommonName), 3]
 ```
@@ -743,12 +743,12 @@ labels
 ```
 
 #### Plot of rainfall
-```{r plot-of-rainfall-data}
+```{r}
 ggplot(rainfall, aes(x = Month.2, y = CDMM, colour=Station)) + geom_line() + theme (axis.text.x=element_text(angle=90)) + scale_x_date(breaks=databreaks, labels = labels)
 ```
 
 ###Calculate total abundances per survey by season
-```{r calculate spring total waterbird-abundances}
+```{r}
 
 #spring
 Warden.spr$year <- lubridate::year(Warden.spr$Date)
@@ -998,7 +998,7 @@ Gore.stack$Season <- factor(format(yq, "%q"), levels = 1:4, labels = c("summer",
 ```
 
 #### Import taxonomic framework
-```{r import-taxonomy-data-and-add-Group-to-Gore-data}
+```{r}
 Taxonomy <- read.csv("./raw_data/Taxonomy.csv")
 Gore.stack$Group <- Taxonomy[match(Gore.stack$CommonName, Taxonomy$CommonName), 3]
 ```
@@ -1046,7 +1046,7 @@ Gore.stack.rich$Season <- factor(format(yq, "%q"), levels = 1:4, labels = c("sum
 ```
 
 #### Import taxonomic framework
-```{r import-taxonomy-data-and-add-Group-to-Gore-data}
+```{r}
 Taxonomy <- read.csv("./raw_data/Taxonomy.csv")
 Gore.stack.rich$Group <- Taxonomy[match(Gore.stack.rich$CommonName, Taxonomy$CommonName), 3]
 ```
