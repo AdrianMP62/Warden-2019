@@ -425,13 +425,27 @@ ggplot(Warden.spr.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(min(Warden.spr.MDS.pts$MD
 
 ####Create euclidean distance matrices for datasets to be used to partial bioenv analysis
 ```{r}
-Pipeline.spr.m <-vegdist(Pipeline.spr, method="euclidean")
-Pipeline.sum.m <- vegdist(Pipeline.sum, method ="euclidean")
+Pipeline.spr.m <-vegdist(Pipeline.spr$Pipeline_days, method="euclidean")
+Pipeline.sum.m <- vegdist(Pipeline.sum$Pipeline_days, method ="euclidean")
 Surv.spr.m <- vegdist(Surv.Pipe.spr$Days, method="euclidean")
 Surv.sum.m <- vegdist(Surv.Pipe.sum$Days, method="euclidean")
 Surv.Pipe.spr.m <- vegdist(Surv.Pipe.spr, method="euclidean")
 Surv.Pipe.sum.m <- vegdist(Surv.Pipe.sum, method="euclidean")
 ```
+
+
+```{r}
+Pipeline.sp <- bioenv(Warden.spr.m ~ Pipeline_days, Pipeline.spr, method = "pearson", index = "bray")
+Pipeline.sp
+Pipeline.su <- bioenv(Warden.sum.m ~ Pipeline_days, Pipeline.sum, method = "pearson", index = "bray")
+Pipeline.su
+mantel(Warden.spr.m, Pipeline.spr.m, method="pearson", permutations=999) 
+
+```
+
+
+
+
 
 ####Bio-env analysis to determine influence of pipeline operation, depth and rainfall on waterbrd communities on the Warden wetlands. Uses pearson correlation because env vars without major outliers and not too far off normal in qqnorm plots.
 ```{r}
@@ -849,7 +863,7 @@ xmin <- min(Gore.sum.MDS.sqrt.pts$MDS1)*1.3
 xmax <- max(Gore.sum.MDS.sqrt.pts$MDS1)*1.3
 ymin <- min(Gore.sum.MDS.sqrt.pts$MDS2)*1.3
 ymax <- max(Gore.sum.MDS.sqrt.pts$MDS2)*1.3
-ggplot(Gore.sum.MDS.sqrt.pts, aes(x=MDS1, y=MDS2)) + xlim(xmin, xmax) + ylim(ymin, ymax) + coord_fixed(ratio = 1) + geom_point(cex=8) + geom_text(aes(label = Label), cex=3, vjust=2, hjust=1.6) + theme(legend.position = "none")
+ggplot(Gore.sum.MDS.sqrt.pts, aes(x=MDS1, y=MDS2)) + xlim(xmin, xmax) + ylim(ymin, ymax) + coord_fixed(ratio = 1) + geom_point(cex=8) + geom_text(aes(label = Label), cex=3, vjust=2, hjust=1.6) + theme(legend.position = "none") + geom_path()
 
 #spring raw count data
 Gore.spr.MDS.pts.2 <- Gore.spr.MDS.pts
@@ -907,26 +921,13 @@ xmin <- min(Gore.spr.MDS.pts.2$MDS1)*1.3
 xmax <- max(Gore.spr.MDS.pts.2$MDS1)*1.3
 ymin <- min(Gore.spr.MDS.pts.2$MDS2)*1.3
 ymax <- max(Gore.spr.MDS.pts.2$MDS2)*1.3
-ggplot(Gore.spr.MDS.pts.2, aes(x=MDS1, y=MDS2)) + xlim(xmin, xmax) + ylim(ymin, ymax) + coord_fixed(ratio = 1) + geom_point(size = Gore.spr.bio.4.abund$Black.Swan/250) + geom_text(aes(label = Label), cex=3, vjust=2, hjust=1.6) + theme(legend.position = "none")
+Gore.spr.MDS.pts.2 <- Gore.spr.MDS.pts.2[order(row.names(Gore.spr.MDS.pts.2)), ]
+ggplot(Gore.spr.MDS.pts.2, aes(x=MDS1, y=MDS2)) + xlim(xmin, xmax) + ylim(ymin, ymax) + coord_fixed(ratio = 1) + geom_point(size = Gore.spr.bio.4.abund$Australian.Shelduck/350) + geom_text(aes(label = Label), cex=3, vjust=2, hjust=1.6) + theme(legend.position = "none")
 ```
 
 ###Stacked abundance column plots for Gore system waterbirds
 ```{r}
-input.data3 <- read.csv("./raw_data/Warden_Gore_by_suite_06_19.csv")
-Gore.stack <- input.data3
-Gore.stack <- Gore.stack[Gore.stack$System=="Gore", ] #cut down to just Gore.stack wetlands
-  Gore.stack <- Gore.stack[!(Gore.stack$Date == "23/02/2010" & Gore.stack$SiteCode == "WRP004"), ] #remove duplicate data for Mullet Feb 2010
-  Gore.stack$Date <- as.Date(Gore.stack$Date, format="%d/%m/%Y")
-  Gore.stack$Survey <- Gore.stack$Date #create Survey field from Date
-  Gore.stack$Survey <- format(as.Date(Gore.stack$Survey), "%b-%Y") #change format to mmm-YYYY
-  Gore.stack$Survey <- gsub("Oct-2018", "Nov-2018", Gore.stack$Survey) #lump survey dates that straddle Oct/Nov 2018 and call them Nov-2018
-  yq <- as.yearqtr(as.yearmon(Gore.stack$Date, "%Y/%m/%d")) #create a temporary season field
-Gore.stack$Season <- factor(format(yq, "%q"), levels = 1:4, labels = c("summer", "autumn", "winter", "spring"))
-```
-
-#### Import taxonomic framework
-```{r}
-Taxonomy <- read.csv("./raw_data/Taxonomy.csv")
+Gore.stack <- input.data[input.data$System == "Gore", ]
 Gore.stack$Group <- Taxonomy[match(Gore.stack$CommonName, Taxonomy$CommonName), 3]
 ```
 
@@ -960,28 +961,13 @@ ggplot(Gore.stack.sum, aes(x=reorder(Survey, SurvOrd), y=Count, fill=Group)) + g
 
 ###Stacked column plots for species richness at Gore
 ```{r}
-Gore.stack.rich <- read.csv("./raw_data/Warden_Gore_by_suite_06_19.csv")
-write.csv(Gore.stack.rich, "Gore.stack.rich.csv")
-Gore.stack.rich <- Gore.stack.rich[Gore.stack.rich$System=="Gore", ] #cut down to just Gore wetlands
-Gore.stack.rich <- Gore.stack.rich[-grep("Unidentified", Gore.stack.rich$CommonName), ] #remove rows where birds not identified
-  Gore.stack.rich$Date <- as.Date(Gore.stack.rich$Date, format="%d/%m/%Y")
-  Gore.stack.rich$Survey <- Gore.stack.rich$Date #create Survey field from Date
-  Gore.stack.rich$Survey <- format(as.Date(Gore.stack.rich$Survey), "%b-%Y") #change format to mmm-YYYY
-  Gore.stack.rich$Survey <- gsub("Oct-2018", "Nov-2018", Gore.stack.rich$Survey) #lump survey dates that straddle Oct/Nov 2018 and call them Nov-2018
-  yq <- as.yearqtr(as.yearmon(Gore.stack.rich$Date, "%Y/%m/%d")) #create a temporary season field
-Gore.stack.rich$Season <- factor(format(yq, "%q"), levels = 1:4, labels = c("summer", "autumn", "winter", "spring"))
-```
-
-#### Import taxonomic framework
-```{r}
-Taxonomy <- read.csv("./raw_data/Taxonomy.csv")
+Gore.stack.rich <- input.data.2[input.data.2$System == "Gore", ]
 Gore.stack.rich$Group <- Taxonomy[match(Gore.stack.rich$CommonName, Taxonomy$CommonName), 3]
 ```
 
 ####create matrix for examining data
 ```{r}
 Gore_matrix <- acast(Gore.stack.rich, Group + CommonName ~ Survey, value.var="Count", fun.aggregate = sum) #sums counts for each species and survey
-write.csv(Gore_matrix, "./analysis_data/Gore_matrix.csv")
 ```
 
 ####Aggregate counts by common name, then count number of species within groups
@@ -1024,7 +1010,6 @@ ground.data.W <- as.data.frame(acast(ground.data.W, CommonName ~ SSD, value.var=
 ground.data.W <- as.data.frame(t(ground.data.W))
 ground.data.W$SSD <- row.names(ground.data.W)
 ground.data.W$Site <- substr(ground.data.W$SSD, start=1, stop=6)
-write.csv(t(ground.data.W, "./analysis_data/ground-data-W.csv"))
 ```
 
 ```{r}
