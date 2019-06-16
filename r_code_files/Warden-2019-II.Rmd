@@ -49,23 +49,27 @@ The following is the output from an Rmarkdown R script for analyses of waterbird
   
 These analyses are based primarily on ground counts. Aerial counts are only for a few Warden system wetlands in 2006 to 2009 where ground counts were not undertaken. These include Neridup and Bandy Creek (Oct 2006-Nov 2008), Ewans (Oct 2006) and Ewans and Mullet combined (Nov 2008 - have to ignore Nov 2008 Mullet ground counts), North Wheatfield (Oct 2006, Oct 2007, Nov 2008). Note that the Nov 2008 aerial data was collected two weeks prior to the ground counts.  Gore data is included only for November 2009 onwards when ground counts are available. Some replicate count data for Oct 2006 and feb 2015 (North Wheatfield) are excluded from the dataset above prior to import. Pink Lake is excluded from analyses because it wasnt consistently surveyed. Birds counted only while in air and not allocated to any particular wetland are given the site code 'In flight'. These conditions apply to all following analyses.  
   
-##Multi-variate analysis of Warden and Gore combined waterbird data by season  
-
-####Import data and format fields
+#Import data and format fields
 ```{r}
+#create data table with unidentified birds included - for column plots of
 input.data <- read.csv("./raw_data/Warden_Gore_by_suite_06_19.csv")
- WG.bySeason <- input.data
-  WG.bySeason <- WG.bySeason[-grep("Unidentified", WG.bySeason$CommonName), ] #remove rows where birds not identified
-  WG.bySeason <- WG.bySeason[-grep("Grassbird", WG.bySeason$CommonName), ] #remove records of little grassbird
-  
-  WG.bySeason <- WG.bySeason[!(WG.bySeason$Date == "23/02/2010" & WG.bySeason$SiteCode == "WRP004"), ] #remove duplicate data for Mullet Feb 2010
-  WG.bySeason$Date <- as.Date(WG.bySeason$Date, format="%d/%m/%Y")
-  WG.bySeason$Survey <- WG.bySeason$Date #create Survey field from Date
-  WG.bySeason$Survey <- format(as.Date(WG.bySeason$Survey), "%b-%Y") #change format to mmm-YYYY
-  WG.bySeason$Survey <- gsub("Oct-2018", "Nov-2018", WG.bySeason$Survey) #lump survey dates that straddle Oct/Nov 2018
-  yq <- as.yearqtr(as.yearmon(WG.bySeason$Date, "%Y/%m/%d"))
-WG.bySeason$Season <- factor(format(yq, "%q"), levels = 1:4, labels = c("summer", "autumn", "winter", "spring")) #create Season (spring vs summer) variable
-write.csv(WG.bySeason, "./analysis_data/WG.bySeason.csv")
+  input.data <- input.data[-grep("Grassbird", input.data$CommonName), ] #remove records of little grassbird
+  input.data$Date <- as.Date(input.data$Date, format="%d/%m/%Y")
+  input.data$Survey <- input.data$Date #create Survey field from Date
+  input.data$Survey <- format(as.Date(input.data$Survey), "%b-%Y") #change format to mmm-YYYY
+  input.data$Survey <- gsub("Oct-2018", "Nov-2018", input.data$Survey) #lump survey dates that straddle Oct/Nov 2018
+  yq <- as.yearqtr(as.yearmon(input.data$Date, "%Y/%m/%d"))
+  input.data$Season <- factor(format(yq, "%q"), levels = 1:4, labels = c("summer", "autumn", "winter", "spring")) #create Season (spring vs summer) variable
+  input.data$Sys_Sur <- paste(input.data$System, input.data$Survey, sep = " ") # combine System and date to create one 'sample' variable for mds - i.e. combine system with season
+input.data.2 <- input.data[-grep("Unidentified", input.data$CommonName), ] #remove rows where birds not identified and save as a sep
+#import taonomic nomenclature table
+Taxonomy <- read.csv("./raw_data/Taxonomy.csv")
+```
+
+##MULTI-VARIATE ANALYSIS OF WARDEN AND GORE DATA COMBINED, BY SEASON 
+
+```{r}
+WG.bySeason <- input.data.2
 ```
 
 ####Aggregate data by Season and create matrix
@@ -170,19 +174,7 @@ These box plots show the abundance of the top 8 species contributiong to waterbi
 ##ORDINATION OF GORE SYSTEM VERSUS WARDEN SYSTEM  
 
 ```{r}
- input.data2 <- read.csv("./raw_data/Warden_Gore_by_suite_06_19.csv")
-  WG.bySystem <- input.data2
-    WG.bySystem <- WG.bySystem[-grep("Unidentified", WG.bySystem$CommonName), ] #remove rows where birds not identified
-  WG.bySystem <- WG.bySystem[-grep("Grassbird", WG.bySystem$CommonName), ] #remove records of little grassbird
-  WG.bySystem <- WG.bySystem[!(WG.bySystem$Date == "23/02/2010" & WG.bySystem$SiteCode == "WRP004"), ] #remove duplicate data for Mullet Feb 2010
-  WG.bySystem$Date <- as.Date(WG.bySystem$Date, format="%d/%m/%Y")
-  WG.bySystem$Survey <- WG.bySystem$Date #create Survey field from Date
-  WG.bySystem$Survey <- format(as.Date(WG.bySystem$Survey), "%b-%Y") #change format to mmm-YYYY
-  WG.bySystem$Survey <- gsub("Oct-2018", "Nov-2018", WG.bySystem$Survey) #lump survey dates that straddle Oct/Nov 2018
-  yq <- as.yearqtr(as.yearmon(WG.bySystem$Date, "%Y/%m/%d"))
-WG.bySystem$Season <- factor(format(yq, "%q"), levels = 1:4, labels = c("summer", "autumn", "winter", "spring")) #create Season (spring vs summer) variable
-  WG.bySystem$Sys_Sur <- paste(WG.bySystem$System, WG.bySystem$Survey, sep = " ") # combine System and date to create one 'sample' variable for mds - i.e. combine system with season
-write.csv(WG.bySystem, "./WG.bySystem.csv")
+  WG.bySystem <- input.data.2
 ```
 
 #### Aggregate data by species and system/survey
@@ -201,7 +193,7 @@ rownames(WG.bySystem.m) <- WG.bySystem.m[,1]
 
 #### MDS unconstrained ordination using metaMDS in package vegan to compare Warden and Gore wetland systems
 ```{r}
-WG.MDS.bySyst <- metaMDS(WG.bySystem.m, distance = "bray")
+WG.MDS.bySyst <- metaMDS(WG.bySystem.m, try=100, distance = "bray")
 ```
 
 #### Extract coordinates from ordination and add season to data frame for Warden vs Gore analysis
@@ -221,7 +213,7 @@ str(WG.MDS.bySyst.pts) #join System and season
 
 #### Ordination plot with symbols coloured by system (Warden versus Gore), `r WG.MDS.bySyst$stress`
 ```{r}
-ggplot(WG.MDS.bySyst.pts, aes(x=MDS1, y=MDS2, shape=SystSeas, colour=SystSeas)) + xlim(-0.5, 0.35) + ylim(-0.35, 0.3) + coord_fixed(ratio = 1) + geom_point(size=5) + scale_color_manual(values=c("blue","blue","red","red")) + scale_shape_manual(values=c(0,15,2,17)) + geom_text(aes(label=Survey), colour="black", size=3, vjust=1, hjust=1.3)
+ggplot(WG.MDS.bySyst.pts, aes(x=MDS1, y=MDS2, shape=SystSeas, colour=SystSeas)) + xlim(min(WG.MDS.bySyst.pts$MDS1)*1.3, max(WG.MDS.bySyst.pts$MDS1)*1.3) + ylim(min(WG.MDS.bySyst.pts$MDS2)*1.3, max(WG.MDS.bySyst.pts$MDS2)*1.3) + coord_fixed(ratio = 1) + geom_point(size=5) + scale_color_manual(values=c("blue","blue","red","red")) + scale_shape_manual(values=c(0,15,2,17)) + geom_text(aes(label=Survey), colour="black", size=3, vjust=1, hjust=1.3)
 ```
 
 However, the stress level of the above two-dimensional ordintion is unacceptably high at `r WG.MDS.bySyst$stress`. A three-dimensional ordination was therefore undertaken.
@@ -258,7 +250,7 @@ ggplot(WG.3dMDS.bySyst.pts, aes(x=MDS1, y=MDS2, shape=SystSeas, colour=SystSeas)
 ```
 
 ```{r new-plot-for-Birdlife-talk}
-ggplot(WG.3dMDS.bySyst.pts, aes(x=MDS1, y=MDS2, shape=SystSeas, colour=SystSeas)) + xlim(min(WG.3dMDS.bySyst.pts$MDS1)*1.3,max(WG.3dMDS.bySyst.pts$MDS1)*1.3) + ylim(min(WG.3dMDS.bySyst.pts$MDS2)*1.3,max(WG.3dMDS.bySyst.pts$MDS2)*1.3) + coord_fixed(ratio = 1) + geom_point(size=5) + scale_color_manual(values=c("black","black","black","black")) + scale_shape_manual(values=c(15,15,15,15)) + theme(legend.title = element_blank()) + theme(legend.position = "top") + theme(legend.text=element_text(size=12)) + theme(plot.margin=unit(c(0,0,0,0),"mm")) + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank()) + theme(axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) + theme(legend.title = element_blank()) + theme(legend.position = "none")
+# ggplot(WG.3dMDS.bySyst.pts, aes(x=MDS1, y=MDS2, shape=SystSeas, colour=SystSeas)) + xlim(min(WG.3dMDS.bySyst.pts$MDS1)*1.3,max(WG.3dMDS.bySyst.pts$MDS1)*1.3) + ylim(min(WG.3dMDS.bySyst.pts$MDS2)*1.3,max(WG.3dMDS.bySyst.pts$MDS2)*1.3) + coord_fixed(ratio = 1) + geom_point(size=5) + scale_color_manual(values=c("black","black","black","black")) + scale_shape_manual(values=c(15,15,15,15)) + theme(legend.title = element_blank()) + theme(legend.position = "top") + theme(legend.text=element_text(size=12)) + theme(plot.margin=unit(c(0,0,0,0),"mm")) + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank()) + theme(axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) + theme(legend.title = element_blank()) + theme(legend.position = "none")
 ```
 
 
@@ -319,20 +311,7 @@ ttest.results
 
 ####Input waterbird data and split into spring and summer datasets, including creating a survey variable
 ```{r}
-input.data3 <- read.csv("./raw_data/Warden_Gore_by_suite_06_19.csv")
-input.data3$Date <- as.Date(input.data3$Date, "%d/%m/%Y")
-Warden <- input.data3
-Warden <- Warden[-grep("Unidentified", Warden$CommonName), ] #remove rows where birds not identified
-Warden <- Warden[Warden$System=="Warden", ] #cut down to just Warden wetlands
-Warden <- Warden[-grep("Grassbird", Warden$CommonName), ] #remove records of little grassbird
-  Warden <- Warden[!(Warden$Date == "23/02/2010" & Warden$SiteCode == "WRP004"), ] #remove duplicate data for Mullet Feb 2010
-#    input.data <- input.data[!(input.data$Date == "10/11/2008" & input.data$SiteCode == "WRP004"), ] #remove duplicate data for Mullet Nov 2008
-  Warden$Date <- as.Date(Warden$Date, format="%d/%m/%y")
-  Warden$Survey <- Warden$Date #create Survey field from Date
-  Warden$Survey <- format(as.Date(Warden$Survey), "%b-%Y") #change format to mmm-YYYY
-  Warden$Survey <- gsub("Oct-2018", "Nov-2018", Warden$Survey) #lump survey dates that straddle Oct/Nov 2018 and call them Nov-2018
-  yq <- as.yearqtr(as.yearmon(Warden$Date, "%Y/%m/%d")) #create a temporary season field
-Warden$Season <- factor(format(yq, "%q"), levels = 1:4, labels = c("summer", "autumn", "winter", "spring")) #create Season (spring vs summer) variable
+Warden <- input.data.2[input.data.2$System == "Warden", ]
   Warden.sum <- Warden[Warden$Season == "summer", ] #summer only data
   Warden.spr <- Warden[Warden$Season == "spring", ] #spring only data
 ```
@@ -439,7 +418,7 @@ for (i in 1:ncol(BEdat.spr2)){
 ####Ordination graphs of Warden system waterbird communities by survey with surveys undertaken in spring and summer scaled and coloured by average depth of gauged wetlands  
 ```{r}
 #summer
-ggplot(Warden.sum.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.4, 0.3) + ylim(-0.2, 0.2) + coord_fixed(ratio = 1) + geom_point(aes(size = BEdat.sum$Depth, colour=BEdat.sum$Depth)) + scale_size(range = c(9,20)) + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none")
+ggplot(Warden.sum.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(min(Warden.sum.MDS.pts$MDS1)*1.3, max(Warden.sum.MDS.pts$MDS1)*1.3) + ylim(min(Warden.sum.MDS.pts$MDS2)*1.3, max(Warden.sum.MDS.pts$MDS2)*1.3) + coord_fixed(ratio = 1) + geom_point(aes(size = BEdat.sum$Depth, colour=BEdat.sum$Depth)) + scale_size(range = c(9,20)) + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none")
 #spring
 ggplot(Warden.spr.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(min(Warden.spr.MDS.pts$MDS1)*1.3, max(Warden.spr.MDS.pts$MDS1)*1.3) + ylim(min(Warden.spr.MDS.pts$MDS2)*1.3, max(Warden.spr.MDS.pts$MDS2)*1.3) + coord_fixed(ratio = 1) + geom_point(aes(size = BEdat.spr$Depth, colour=BEdat.spr$Depth)) + scale_size(range = c(5,20)) + geom_text(aes(label = Survey), cex=3, vjust=2, hjust=1.25) + theme(legend.position = "none") + scale_x_reverse(limits=c(0.3, -0.3)) + theme(legend.title = element_blank()) + theme(legend.position = "top") + theme(legend.text=element_text(size=12)) + theme(plot.margin=unit(c(0,0,0,0),"mm")) + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank()) + theme(axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) + theme(legend.title = element_blank()) + theme(legend.position = "none")
 ```
@@ -628,22 +607,7 @@ ggplot(Warden.spr.MDS.pts, aes(x=MDS1, y=MDS2)) + xlim(-0.8, 0.6) + ylim(-0.6, 0
 
 ###Stacked abundance column plots for Warden system waterbirds
 ```{r}
-input.data3 <- read.csv("./raw_data/Warden_Gore_by_suite_06_19.csv")
-Warden.stack <- input.data3
-Warden.stack <- Warden.stack[Warden.stack$System=="Warden", ] #cut down to just Warden.stack wetlands
-Warden.stack <- Warden.stack[-grep("Grassbird", Warden.stack$CommonName), ] #remove records of little grassbird
-  Warden.stack <- Warden.stack[!(Warden.stack$Date == "23/02/2010" & Warden.stack$SiteCode == "WRP004"), ] #remove duplicate data for Mullet Feb 2010
-  Warden.stack$Date <- as.Date(Warden.stack$Date, format="%d/%m/%Y")
-  Warden.stack$Survey <- Warden.stack$Date #create Survey field from Date
-  Warden.stack$Survey <- format(as.Date(Warden.stack$Survey), "%b-%Y") #change format to mmm-YYYY
-  Warden.stack$Survey <- gsub("Oct-2018", "Nov-2018", Warden.stack$Survey) #lump survey dates that straddle Oct/Nov 2018 and call them Nov-2018
-  yq <- as.yearqtr(as.yearmon(Warden.stack$Date, "%Y/%m/%d")) #create a temporary season field
-Warden.stack$Season <- factor(format(yq, "%q"), levels = 1:4, labels = c("summer", "autumn", "winter", "spring"))
-```
-
-#### Import taxonomic framework
-```{r}
-Taxonomy <- read.csv("./raw_data/Taxonomy.csv")
+Warden.stack <- input.data[input.data$System == "Warden", ]
 Warden.stack$Group <- Taxonomy[match(Warden.stack$CommonName, Taxonomy$CommonName), 3]
 ```
 
@@ -677,23 +641,7 @@ ggplot(Warden.stack.sum, aes(x=reorder(Survey, SurvOrd), y=Count, fill=Group)) +
 
 ###Stacked column plots for species richness at Warden
 ```{r}
-Warden.stack.rich <- read.csv("./raw_data/Warden_Gore_by_suite_06_19.csv")
-write.csv(Warden.stack.rich, "Warden.stack.rich.csv")
-Warden.stack.rich <- Warden.stack.rich[Warden.stack.rich$System=="Warden", ] #cut down to just Warden.stack.rich wetlands
-Warden.stack.rich <- Warden.stack.rich[-grep("Unidentified", Warden.stack.rich$CommonName), ] #remove rows where birds not identified
-Warden.stack.rich <- Warden.stack.rich[-grep("Grassbird", Warden.stack.rich$CommonName), ] #remove records of little grassbird
-Warden.stack.rich <- Warden.stack.rich[!(Warden.stack.rich$Date == "23/02/2010" & Warden.stack.rich$SiteCode == "WRP004"), ] #remove duplicate data for Mullet Feb 2010
-  Warden.stack.rich$Date <- as.Date(Warden.stack.rich$Date, format="%d/%m/%Y")
-  Warden.stack.rich$Survey <- Warden.stack.rich$Date #create Survey field from Date
-  Warden.stack.rich$Survey <- format(as.Date(Warden.stack.rich$Survey), "%b-%Y") #change format to mmm-YYYY
-  Warden.stack.rich$Survey <- gsub("Oct-2018", "Nov-2018", Warden.stack.rich$Survey) #lump survey dates that straddle Oct/Nov 2018 and call them Nov-2018
-  yq <- as.yearqtr(as.yearmon(Warden.stack.rich$Date, "%Y/%m/%d")) #create a temporary season field
-Warden.stack.rich$Season <- factor(format(yq, "%q"), levels = 1:4, labels = c("summer", "autumn", "winter", "spring"))
-```
-
-#### Import taxonomic framework
-```{r}
-Taxonomy <- read.csv("./raw_data/Taxonomy.csv")
+Warden.stack.rich <- input.data.2[input.data.2$System == "Warden", ]
 Warden.stack.rich$Group <- Taxonomy[match(Warden.stack.rich$CommonName, Taxonomy$CommonName), 3]
 ```
 
@@ -765,17 +713,7 @@ write.csv(Warden.sum.yearsums, "./analysis_data/warden_sum_yearsums.csv")
 
 ### Import data for species x species analysis
 ```{r}
-Species <- read.csv("./raw_data/Warden_Gore_by_suite_06_19.csv")
-Species <- Species[-grep("Unidentified", Species$CommonName), ] #remove rows where birds not identified
-Species <- Species[Species$System=="Warden", ] #cut down to just Warden wetlands
-Species <- Species[-grep("Grassbird", Species$CommonName), ] #remove records of little grassbird
-  Species <- Species[!(Species$Date == "23/02/2010" & Species$SiteCode == "WRP004"), ] #remove duplicate data for Mullet Feb 2010
-  Species$Date <- as.Date(Species$Date, format="%d/%m/%Y")
-  Species$Survey <- Species$Date #create Survey field from Date
-  Species$Survey <- format(as.Date(Species$Survey), "%b-%Y") #change format to mmm-YYYY
-  Species$Survey <- gsub("Oct-2018", "Nov-2018", Species$Survey) #lump survey dates that straddle Oct/Nov 2018 and call them Nov-2018
-  yq <- as.yearqtr(as.yearmon(Species$Date, "%Y/%m/%d")) #create a temporary season field
-Species$Season <- factor(format(yq, "%q"), levels = 1:4, labels = c("summer", "autumn", "winter", "spring")) #create Season (spring vs summer) variable
+Species <- input.data.2
   Species.sum <- Species[Species$Season == "summer", ] #summer only data
   Species.spr <- Species[Species$Season == "spring", ] #spring only data
 ```
@@ -792,22 +730,9 @@ write.csv(sp.selected, file = sp.id)
 
 ###Ordinations and associated analyses
 
-### Input taxonomic table
-```{r}
-Taxonomy <- read.csv("./raw_data/Taxonomy.csv")
-```
-
 ####Input waterbird data and split into spring and summer datasets, including creating a survey variable
 ```{r}
-input.data5 <- read.csv("./raw_data/Warden_Gore_by_suite_06_19.csv")
-Gore <- input.data5
-Gore <- Gore[-grep("Unidentified", Gore$CommonName), ] #remove rows where birds not identified
-Gore <- Gore[Gore$System=="Gore", ] #cut down to just Gore wetlands
-Gore$Date <- as.Date(Gore$Date, format="%d/%m/%Y")
-Gore$Survey <- Gore$Date #create Survey field from Date
-Gore$Survey <- format(as.Date(Gore$Survey), "%b-%Y") #change format to mmm-YYYY
-yq <- as.yearqtr(as.yearmon(Gore$Date, "%Y/%m/%d")) #create a temporary season field
-Gore$Season <- factor(format(yq, "%q"), levels = 1:4, labels = c("summer", "autumn", "winter", "spring")) #create Season (spring vs summer) variable
+Gore <- input.data.2[input.data.2$System == "Gore", ]
 Gore.sum <- Gore[Gore$Season == "summer", ] #summer only data
 Gore.sum$Group <- Taxonomy[match(Gore.sum$CommonName, Taxonomy$CommonName), 3]
 Gore.spr <- Gore[Gore$Season == "spring", ] #spring only data
