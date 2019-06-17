@@ -49,7 +49,7 @@ The following is the output from an Rmarkdown R script for analyses of waterbird
   
 These analyses are based primarily on ground counts. Aerial counts are only for a few Warden system wetlands in 2006 to 2009 where ground counts were not undertaken. These include Neridup and Bandy Creek (Oct 2006-Nov 2008), Ewans (Oct 2006) and Ewans and Mullet combined (Nov 2008 - have to ignore Nov 2008 Mullet ground counts), North Wheatfield (Oct 2006, Oct 2007, Nov 2008). Note that the Nov 2008 aerial data was collected two weeks prior to the ground counts.  Gore data is included only for November 2009 onwards when ground counts are available. Some replicate count data for Oct 2006 and feb 2015 (North Wheatfield) are excluded from the dataset above prior to import. Pink Lake is excluded from analyses because it wasnt consistently surveyed. Birds counted only while in air and not allocated to any particular wetland are given the site code 'In flight'. These conditions apply to all following analyses.  
   
-#Import data and format fields
+#IMPORT DATA AND FORMAT COLUMNS
 ```{r}
 #create data table with unidentified birds included - for column plots of
 input.data <- read.csv("./raw_data/Warden_Gore_by_suite_06_19.csv")
@@ -413,6 +413,9 @@ BEdat.spr.st2 <-BEdat.spr2
 for (i in 1:ncol(BEdat.spr2)){
   BEdat.spr.st2[, i] <- rescale(BEdat.spr2[, i], to = c(0,1))
 }
+
+Surv.Pipe.spr$Days.st <- rescale(Surv.Pipe.spr$Days, to = c(0,1))
+Surv.Pipe.sum$Days.st <- rescale(Surv.Pipe.sum$Days, to = c(0,1))
 ```
 
 ####Ordination graphs of Warden system waterbird communities by survey with surveys undertaken in spring and summer scaled and coloured by average depth of gauged wetlands  
@@ -433,24 +436,18 @@ Surv.Pipe.spr.m <- vegdist(Surv.Pipe.spr, method="euclidean")
 Surv.Pipe.sum.m <- vegdist(Surv.Pipe.sum, method="euclidean")
 ```
 
-
+####Test for effect of Pipeline operation
 ```{r}
-Pipeline.sp <- bioenv(Warden.spr.m ~ Pipeline_days, Pipeline.spr, method = "pearson", index = "bray", )
+Pipeline.sp <- bioenv(Warden.spr.m ~ Pipeline_days, Pipeline.spr, method = "pearson", index = "bray", ) #bioenv to testfor effect of pipeline operation days
 Pipeline.sp
-Pipeline.sp.be <- bioenvdist(Pipeline.sp, which = "best")
-Pipeline.sp.be
+Pipeline.sp.be <- bioenvdist(Pipeline.sp, which = "best") #extract euclidean matrix based on Pipeline_days
 mantel(vegdist(Warden.spr.m, method = "bray"), Pipeline.spr.m, method="pearson", permutations=999) 
 
-
-Pipeline.su <- bioenv(Warden.sum.m ~ Pipeline_days, Pipeline.sum, method = "pearson", index = "bray")
+Pipeline.su <- bioenv(Warden.sum.m ~ Pipeline_days, Pipeline.sum, method = "pearson", index = "bray", ) #bioenv to testfor effect of pipeline operation days
 Pipeline.su
-mantel(Warden.spr.m, Pipeline.spr.m, method="pearson", permutations=999) 
-
+Pipeline.su.be <- bioenvdist(Pipeline.su, which = "best") #extract euclidean matrix based on Pipeline_days
+mantel(vegdist(Warden.sum.m, method = "bray"), Pipeline.sum.m, method="pearson", permutations=999) 
 ```
-
-
-
-
 
 ####Bio-env analysis to determine influence of pipeline operation, depth and rainfall on waterbrd communities on the Warden wetlands. Uses pearson correlation because env vars without major outliers and not too far off normal in qqnorm plots.
 ```{r}
@@ -508,13 +505,15 @@ mantel(Warden.sum.md, Warden.sum3.m, method="pearson", permutations=999) #mantel
 Warden.sumsp.m <- Warden.sum.msq[, summer.species] #extract just the 8 species for spring with square root abundances (because the ordination being used for the envfit (below) was performed on square root distances
 ```
 
+
 ####db-RDA analyses including extended plotting
 ```{r}
 #spring
 #test individual variables
-mod1 <- capscale(Warden.spr.m ~ CDM3MO_MYRUP, BEdat.spr.st2, dist="bray") #test individual variables (use BEdat.spr2 to include Pipeline_days
+mod1 <- capscale(Warden.spr.m ~ Depth, BEdat.spr.st2, dist="bray") #test individual variables (use BEdat.spr2 to include Pipeline_days
 mod1
 anova(mod1) #signif of individual variable
+
 #stepwise model procedure with 'pipeline' data partialled out
 mod2 <- capscale(Warden.spr.m ~ Depth + CDM3MO_ESPER + CDM6MO_ESPER + CDM12MO_ESPER + CDM3MO_EAERO + CDM6MO_EAERO + CDM12MO_EAERO + CDM3MO_MYRUP + CDM6MO_MYRUP + CDM12MO_MYRUP + Pipeline_days, BEdat.spr.st2, dist="bray") #full model
 mod0 <- capscale(Warden.spr.m ~ 1, BEdat.spr.st2, dist="bray") #Null model
@@ -532,9 +531,10 @@ anova(mod3) #signif or stepwise model
 
 
 #summer
-mod1 <- capscale(Warden.sum.m ~ Days, Surv.sum, dist="bray") #test individual variables
+mod1 <- capscale(Warden.sum.m ~ CDM12MO_MYRUP, BEdat.sum.st, dist="bray") #test individual variables
 mod1
 anova(mod1) #signif of individual variable
+#stepwise model build
 mod2 <- capscale(Warden.sum.m ~ ., BEdat.sum.st, dist="bray") #full model
 mod0 <- capscale(Warden.sum.m ~ 1, BEdat.sum.st, dist="bray") #Null model
 ind <- ordistep(mod0, scope = formula(mod2), perm.max = 999) #stepwise model build from all
