@@ -435,8 +435,13 @@ Surv.Pipe.sum.m <- vegdist(Surv.Pipe.sum, method="euclidean")
 
 
 ```{r}
-Pipeline.sp <- bioenv(Warden.spr.m ~ Pipeline_days, Pipeline.spr, method = "pearson", index = "bray")
+Pipeline.sp <- bioenv(Warden.spr.m ~ Pipeline_days, Pipeline.spr, method = "pearson", index = "bray", )
 Pipeline.sp
+Pipeline.sp.be <- bioenvdist(Pipeline.sp, which = "best")
+Pipeline.sp.be
+mantel(vegdist(Warden.spr.m, method = "bray"), Pipeline.spr.m, method="pearson", permutations=999) 
+
+
 Pipeline.su <- bioenv(Warden.sum.m ~ Pipeline_days, Pipeline.sum, method = "pearson", index = "bray")
 Pipeline.su
 mantel(Warden.spr.m, Pipeline.spr.m, method="pearson", permutations=999) 
