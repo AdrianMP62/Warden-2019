@@ -36,7 +36,7 @@ set.seed(1234)
 ```
 
 ```{r}
-Packages <- c("vegan", "ggrepel", "grid","ggplot2", "plyr", "scales","lubridate", "stringr", "gsubfn", "reshape2", "knitr", "simba", "zoo", "car")
+Packages <- c("vegan", "ggrepel","ggplot2", "plyr", "scales", "stringr","reshape2", "knitr", "zoo", "car")
 lapply(Packages, library, character.only = TRUE)
 source("./functions/bio_env_ext.R") #The Bio_env and bv_step_ext routines below comes from http://menugget.blogspot.com.au/2011/06/clarke-and-ainsworths-bioenv-and-bvstep.html
 source("./functions/bv_step_ext.R")
@@ -198,7 +198,7 @@ WG.MDS.bySyst <- metaMDS(WG.bySystem.m, try=100, distance = "bray")
 
 #### Extract coordinates from ordination and add season to data frame for Warden vs Gore analysis
 ```{r}
-system <- unique(input.data2$System) #extract a unique list of systems (Gore, Warden)
+system <- unique(input.data.2$System) #extract a unique list of systems (Gore, Warden)
 WG.MDS.bySyst.pts <- as.data.frame(WG.MDS.bySyst$points) #extract coordinates from metaMDS
 WG.MDS.bySyst.pts$Sys_Sur <- row.names(WG.MDS.bySyst.pts) #use row.names to create new System+Survey period variable
 WG.MDS.bySyst.pts$Survey <- str_sub(WG.MDS.bySyst.pts$Sys_Sur, -8, -1) #extract Survey period from Sys-Sur variable by extracting last 8 characters
@@ -226,7 +226,7 @@ plot(WG.3dMDS.bySyst, xlim=c(-1,1), display = c("sites", "species"), type="t")
 
 #### Extract coordinates from 3D ordination and add season to data frame for Warden vs Gore analysis
 ```{r}
-system <- unique(input.data2$System) #extract a unique list of systems (Gore, Warden)
+system <- unique(input.data.2$System) #extract a unique list of systems (Gore, Warden)
 WG.3dMDS.bySyst.pts <- as.data.frame(WG.3dMDS.bySyst$points) #extract coordinates from metaMDS
 WG.3dMDS.bySyst.pts$Sys_Sur <- row.names(WG.3dMDS.bySyst.pts) #use row.names to create new System+Survey period variable
 WG.3dMDS.bySyst.pts$Survey <- str_sub(WG.3dMDS.bySyst.pts$Sys_Sur, -8, -1) #extract Survey period from Sys-Sur variable by extracting last 8 characters
@@ -607,7 +607,7 @@ Warden.arrows.spr.birds <-as.data.frame(fit.spr.birds$vectors$arrows*sqrt(fit.sp
 Warden.arrows.spr.birds$Species <- row.names(Warden.arrows.spr.birds) #add species names to vectors
 #restricted env vars envfit
 plot(Warden.spr.MDS, type = "n", xlim=c(-0.4, 0.5), ylim=c(-0.4, 0.3))
-points(Warden.spr.MDS, display = "sites", bg = "grey", pch=21, cex = Warden.spr8$Australian.Shelduck/500)
+points(Warden.spr.MDS, display = "sites", bg = "grey", pch=21, cex = Warden.spr7$Australian.Shelduck/500)
 text(Warden.spr.MDS, display = "sites", cex = 0.7)
 plot(fit.spr.birds)
 
