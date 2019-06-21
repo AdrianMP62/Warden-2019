@@ -160,8 +160,8 @@ colnames(WG.bySeas.Simper2) = c("Species", "cont") #add new column names
   rownames(agg.spec.data.8) <- NULL #reset row names
   agg.spec.data.8 <- as.data.frame(agg.spec.data.8[, -3]) #remove Survey field
   agg.spec.data.8$CommonName <- as.character(agg.spec.data.8$CommonName)
-  write.csv(agg.spec.data.8, "agg.spec.data.8.csv")
-  agg.spec.data.8 <- read.csv("agg.spec.data.8.csv")
+  write.csv(agg.spec.data.8, "./outputs/agg.spec.data.8.csv")
+  agg.spec.data.8 <- read.csv("./outputs/agg.spec.data.8.csv")
 ```
 
 
@@ -281,8 +281,8 @@ agg.spec.data.2 <- agg.spec.data.2[agg.spec.data.2$CommonName %in% WG.bySyst.Sim
 rownames(agg.spec.data.2) <- NULL
 agg.spec.data.2$CommonName <- as.character(agg.spec.data.2$CommonName)
 colnames(agg.spec.data.2)[4] <- "Abundance"
-write.csv(agg.spec.data.2, "./analysis_data/agg.spec.data.2.csv")
-agg.spec.data.2 <- read.csv("agg.spec.data.2.csv")
+write.csv(agg.spec.data.2, "./outputs/agg.spec.data.2.csv")
+agg.spec.data.2 <- read.csv("./outputs/agg.spec.data.2.csv")
 ```
 
 #### Box plots for Warden v Gore for the top 10 simper species
@@ -319,7 +319,7 @@ Warden <- input.data.2[input.data.2$System == "Warden", ]
 ####Create a matrix for checking counts - this not used in analysis
 ```{r}
 Warden_matrix <- acast(Warden, CommonName ~ Survey, value.var="Count", fun.aggregate = sum) #sums counts for each species and survey
-write.csv(Warden_matrix, "./analysis_data/Warden_matrix.csv")
+write.csv(Warden_matrix, "./outputs/Warden_matrix.csv")
 ```
 
 ####Aggregate count data by just common name and survey for creating season matrices
@@ -337,15 +337,15 @@ Warden.sum.m <- melt(Warden.sum.agg)
 Warden.sum.m <- dcast(Warden.sum.m, Survey ~ CommonName, fill="0")
 rownames(Warden.sum.m) <- Warden.sum.m[,1]
 Warden.sum.m[,1] <- NULL
-write.csv(Warden.sum.m, "Warden_sum_m.csv")
-Warden.sum.m <- read.csv("Warden_sum_m.csv", row.names=1)
+write.csv(Warden.sum.m, "./outputs/Warden_sum_m.csv")
+Warden.sum.m <- read.csv("./outputs/Warden_sum_m.csv", row.names=1)
 #spring
 Warden.spr.m <- melt(Warden.spr.agg)
 Warden.spr.m <- dcast(Warden.spr.m, Survey ~ CommonName, fill="0")
 rownames(Warden.spr.m) <- Warden.spr.m[,1]
 Warden.spr.m[,1] <- NULL
-write.csv(Warden.spr.m, "./analysis_data/Warden_spr_m.csv")
-Warden.spr.m <- read.csv("./analysis_data/Warden_spr_m.csv", row.names=1)
+write.csv(Warden.spr.m, "./outputs/Warden_spr_m.csv")
+Warden.spr.m <- read.csv("./outputs/Warden_spr_m.csv", row.names=1)
 ```
 
 ####MDS unconstrained ordination using metaMDS in package vegan to analyse effects of season within the Warden system
@@ -484,7 +484,7 @@ Warden.spr.bio
 #note: warnings are not important, see http://menugget.blogspot.com/2011/06/clarke-and-ainsworths-bioenv-and-bvstep.html
 spring.species <- c("Australian.Shelduck","Banded.Stilt","Grey.Teal","Pacific.Black.Duck","Red.necked.Stint","Silver.Gull","Red.necked.Avocet")
 Warden.spr7 <- Warden.spr.m[, spring.species] # create new survey x specie matrix with the 8 species from the bv.step analysis
-write.csv(Warden.spr7, "./analysis_data/Warden 7 species.csv")
+write.csv(Warden.spr7, "./outputs/Warden 7 species.csv")
 Warden.spr7.m <- vegdist(sqrt(Warden.spr7), method= "bray") #create dissimilarity matrix for just 8 species, for use in mantel tests
 Warden.spr.md <- vegdist(sqrt(Warden.spr.m), method = "bray") #calculate Warden spring 
 mantel(Warden.spr.md, Warden.spr7.m, method="pearson", permutations=999) #mantel test to determine permutational significance
@@ -498,7 +498,7 @@ Warden.sum.bio
 #note: warnings are not important, see http://menugget.blogspot.com/2011/06/clarke-and-ainsworths-bioenv-and-bvstep.html
 summer.species <- c("Australian.Shelduck","Grey.Teal","Little.Black.Cormorant")
 Warden.sum3 <- Warden.sum.m[, summer.species] # create new survey x specie matrix with the 8 species from the bv.step analysis
-write.csv(Warden.sum3, "./analysis_data/Warden 3 species.csv")
+write.csv(Warden.sum3, "./outputs/Warden 3 species.csv")
 Warden.sum3.m <- vegdist(sqrt(Warden.sum3), method= "bray") #create dissimilarity matrix for just 8 species, for use in mantel tests
 Warden.sum.md <- vegdist(sqrt(Warden.sum.m), method = "bray") #calculate Warden suming 
 mantel(Warden.sum.md, Warden.sum3.m, method="pearson", permutations=999) #mantel test to determine permutational significance
@@ -552,8 +552,8 @@ Warden.spr.NoWa.m <- melt(Warden.spr.NoWa.agg)
 Warden.spr.NoWa.m <- dcast(Warden.spr.NoWa.m, Survey ~ CommonName, fill="0")
 rownames(Warden.spr.NoWa.m) <- Warden.spr.NoWa.m[,1]
 Warden.spr.NoWa.m[,1] <- NULL
-write.csv(Warden.spr.NoWa.m, "./analysis_data/Warden_spr_NoWa_m.csv")
-Warden.spr.NoWa.m <- read.csv("./analysis_data/Warden_spr_NoWa_m.csv", row.names=1)
+write.csv(Warden.spr.NoWa.m, "./outputs/Warden_spr_NoWa_m.csv")
+Warden.spr.NoWa.m <- read.csv("./outputs/Warden_spr_NoWa_m.csv", row.names=1)
 ```
 
 ####Create a warden matrix of just Lake Warden
@@ -564,10 +564,10 @@ Warden.spr.Wa.m <- melt(Warden.spr.Wa.agg)
 Warden.spr.Wa.m <- dcast(Warden.spr.Wa.m, Survey ~ CommonName, fill="0")
 rownames(Warden.spr.Wa.m) <- Warden.spr.Wa.m[,1]
 Warden.spr.Wa.m[,1] <- NULL
-write.csv(Warden.spr.Wa.m, "./analysis_data/Warden_spr_NoWa_m.csv")
-Warden.spr.Wa.m <- read.csv("./analysis_data/Warden_spr_NoWa_m.csv", row.names=1)
+write.csv(Warden.spr.Wa.m, "./outputs/Warden_spr_NoWa_m.csv")
+Warden.spr.Wa.m <- read.csv("./outputs/Warden_spr_NoWa_m.csv", row.names=1)
 Warden.spr.Wa.md <- vegdist(Warden.spr.Wa.m, method = "bray")
-write.csv(as.matrix(Warden.spr.Wa.md), file = "Warden_spr_Wa_md.csv")
+write.csv(as.matrix(Warden.spr.Wa.md), file = "./outputs/Warden_spr_Wa_md.csv")
 ```
 
 #####Bioenv without Lake Warden
@@ -667,7 +667,7 @@ Warden.stack.rich$Group <- Taxonomy[match(Warden.stack.rich$CommonName, Taxonomy
 ####create matrix for examining data
 ```{r}
 Warden_matrix <- acast(Warden.stack.rich, Group+CommonName ~ Survey, value.var="Count", fun.aggregate = sum) #sums counts for each species and survey
-write.csv(Warden_matrix, "./analysis_data/Warden_matrix.csv")
+write.csv(Warden_matrix, "./outputs/Warden_matrix.csv")
 ```
 
 ####Aggregate counts by common name, then count number of species within groups
@@ -722,12 +722,12 @@ ggplot(rainfall, aes(x = Month.2, y = CDMM, colour=Station)) + geom_line() + the
 #spring
 Warden.spr$year <- lubridate::year(Warden.spr$Date)
 Warden.spr.yearsums <- aggregate(data=Warden.spr, Count ~ year + year, FUN="sum")
-write.csv(Warden.spr.yearsums, "./analysis_data/warden_spr_yearsums.csv")
+write.csv(Warden.spr.yearsums, "./outputs/warden_spr_yearsums.csv")
 
 #summer
 Warden.sum$year <- lubridate::year(Warden.sum$Date)
 Warden.sum.yearsums <- aggregate(data=Warden.sum, Count ~ year + year, FUN="sum")
-write.csv(Warden.sum.yearsums, "./analysis_data/warden_sum_yearsums.csv")
+write.csv(Warden.sum.yearsums, "./outputs/warden_sum_yearsums.csv")
 ```
 
 ### Import data for species x species analysis
@@ -762,7 +762,7 @@ Gore.spr$Group <- Taxonomy[match(Gore.spr$CommonName, Taxonomy$CommonName), 3]
 ```{r}
 Gore_matrix <- as.data.frame(acast(Gore, CommonName ~ Survey, value.var="Count", fun.aggregate = sum)) #sums counts for each species and survey
 Gore_matrix$Group <- Taxonomy[match(row.names(Gore_matrix), Taxonomy$CommonName), 3]
-write.csv(Gore_matrix, "./analysis_data/Gore_matrix.csv")
+write.csv(Gore_matrix, "./outputs/Gore_matrix.csv")
 ```
 
 ####Aggregate count data by just common name and survey for creating season matrices
@@ -778,15 +778,15 @@ Gore.sum.m <- melt(Gore.sum.agg)
 Gore.sum.m <- dcast(Gore.sum.m, Survey ~ CommonName, fill="0")
 rownames(Gore.sum.m) <- Gore.sum.m[,1]
 Gore.sum.m[,1] <- NULL
-write.csv(Gore.sum.m, "./analysis_data/Gore_sum_m.csv")
-Gore.sum.m <- read.csv("Gore_sum_m.csv", row.names=1)
+write.csv(Gore.sum.m, "./outputs/Gore_sum_m.csv")
+Gore.sum.m <- read.csv("./outputs/Gore_sum_m.csv", row.names=1)
 #spring
 Gore.spr.m <- melt(Gore.spr.agg)
 Gore.spr.m <- dcast(Gore.spr.m, Survey ~ CommonName, fill="0")
 rownames(Gore.spr.m) <- Gore.spr.m[,1]
 Gore.spr.m[,1] <- NULL
-write.csv(Gore.spr.m, "./analysis_data/Gore_spr_m.csv")
-Gore.spr.m <- read.csv("./analysis_data/Gore_spr_m.csv", row.names=1)
+write.csv(Gore.spr.m, "./outputs/Gore_spr_m.csv")
+Gore.spr.m <- read.csv("./outputs/Gore_spr_m.csv", row.names=1)
 ```
 
 ####2D MDS unconstrained ordinations with vegan plots of Gore surveys by each season based on sqrt counts or raw counts
