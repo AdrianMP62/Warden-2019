@@ -39,12 +39,15 @@ set.seed(1234)
 ```
 
 ```{r}
-Packages <- c("vegan", "ggrepel","ggplot2", "plyr", "scales", "ggpubr", "stringr","reshape2", "knitr", "zoo", "car")
+Packages <- c("gridExtra","vegan", "ggrepel","ggplot2", "plyr", "scales", "ggpubr", "stringr","reshape2", "knitr", "zoo", "car","readxl","lubridate")
 lapply(Packages, library, character.only = TRUE)
 source("./functions/bio_env_ext.R") #The Bio_env and bv_step_ext routines below comes from http://menugget.blogspot.com.au/2011/06/clarke-and-ainsworths-bioenv-and-bvstep.html
 source("./functions/bv_step_ext.R")
 source("./functions/bv.step.R")
+source("./functions/extract_legend.R")
 ```
+
+
 
 #Analyses of waterbird data from the Warden and Gore Ramsar wetlands 2006 to 2019
   
@@ -52,7 +55,7 @@ The following is the output from an Rmarkdown R script for analyses of waterbird
   
 These analyses are based primarily on ground counts. Aerial counts are only for a few Warden system wetlands in 2006 to 2009 where ground counts were not undertaken. These include Neridup and Bandy Creek (Oct 2006-Nov 2008), Ewans (Oct 2006) and Ewans and Mullet combined (Nov 2008 - have to ignore Nov 2008 Mullet ground counts), North Wheatfield (Oct 2006, Oct 2007, Nov 2008). Note that the Nov 2008 aerial data was collected two weeks prior to the ground counts.  Gore data is included only for November 2009 onwards when ground counts are available. Some replicate count data for Oct 2006 and Feb 2015 (North Wheatfield) are excluded from the dataset above prior to import. Pink Lake is excluded from analyses because it wasnt consistently surveyed. Birds counted only while in air and not allocated to any particular wetland are given the site code 'In flight'. These conditions apply to all following analyses.  
   
-#REGRESSIONS OF ESPERANCE RAINFALL STATION DATA TO FILL MISSING VALUES
+##REGRESSIONS OF ESPERANCE RAINFALL STATION DATA TO FILL MISSING VALUES
 ```{r}
 raincheck <- read.csv("./raw_data/rain for regr.csv")
 ggdensity(raincheck$MYRU)
@@ -63,12 +66,7 @@ summary(fit)
 plot(raincheck$ESPE, -38.914+(11.19*sqrt(raincheck$MYRU)))
 ```
 
-
-
-  
-  
-  
-#IMPORT DATA AND FORMAT COLUMNS
+##IMPORT DATA AND FORMAT COLUMNS
 ```{r}
 #create data table with unidentified birds included - for column plots of
 input.data <- read.csv("./raw_data/Warden_Gore_by_suite_06_20.csv")
@@ -95,7 +93,7 @@ Taxonomy <- read.csv("./raw_data/Taxonomy.csv")
 WG.bySeason <- input.data.2
 ```
 
-####Aggregate data by Season and create matrix
+###Aggregate data by Season and create matrix
 ```{r}
   WG.bySeason.agg <- aggregate(data=WG.bySeason, Count ~ CommonName + Survey + Season, FUN="sum") #sum data by common name and survey period
   WG.bySeason.agg <- melt(WG.bySeason.agg) #melt data 
@@ -105,12 +103,12 @@ WG.bySeason <- input.data.2
   WG.bySeason.m <- data.matrix(WG.bySeason.m, rownames.force = NA) #convert data to numeric format (required for metaMDS)
 ```
 
-####Run 2D ordination
+###Run 2D ordination
 ```{r}
 WG.MDS.bySeas <- metaMDS(WG.bySeason.m, distance = "bray")
 ```
 
-####Extract survey and season variables for ordination plots
+###Extract survey and season variables for ordination plots
 ```{r}
 surv.seas <- unique(WG.bySeason[c("Survey", "Season")]) #extract a unique list of survey codes (mmm-yy) and season so can later allocate a season to each survey in the MDS output
 surv.seas <- surv.seas[order(surv.seas$Survey), ] #reorder alphabetically by Survey (Dec-2011 to Oct-2012)
@@ -329,7 +327,79 @@ ttest.results <- data.frame(CommonName=WG.bySyst.Sim.ext, p.value=ttest.v)
 ttest.results
 ```
 
-##WARDEN SYSTEM ANALYSIS ONLY  
+#WARDEN SYSTEM ANALYSIS ONLY  
+
+#Graphs of Warden system lake depths
+```{r}
+Wdepths <- read_xlsx("./raw_data/Warden depths.xlsx") #note: all values of "dry", "pooling" and "below DG" counted as zero depth. Missing values retained.
+Wdepths[, c(2:7)] <- round(Wdepths[, c(2:7)], digits = 2)
+AHD <- as.data.frame (cbind(colnames(Wdepths[, c(2:8)]), c(5.66, 5.19, 3.76, 3.03, 2.783, 2.66, 2.34)))
+AHD[, 2] <- as.numeric(AHD[, 2])
+Wdepths_AHD <- as.data.frame(Wdepths)
+```
+
+##calculate AHD depths
+```{r}
+for (i in 2:8)
+{
+  Wdepths_AHD[, i] <- Wdepths[, i]+AHD[i-1, 2]
+}
+```
+
+##select just Sep to Nov depths and create seperate column for Sep depths only.
+```{r}
+Wdepths_AHD_sp <- Wdepths_AHD
+Wdepths_AHD_sp$month <- month(as.POSIXlt(Wdepths_AHD_sp$Date, format="%d/%m/%Y"))
+Wdepths_AHD_sp$year <- year(as.POSIXlt(Wdepths_AHD_sp$Date, format="%d/%m/%Y"))
+Wdepths_AHD_sp <- Wdepths_AHD_sp[Wdepths_AHD_sp$month %in% c(9,10,11), ]
+Wdepths_AHD_sp$Wheat_sep <- NA
+Wdepths_AHD_sp$year <- as.factor(Wdepths_AHD_sp$year)
+Wdepths_AHD_sp$Wheat_sep <- ifelse(Wdepths_AHD_sp$month == 9, Wdepths_AHD_sp$Wheatfield, 'NA')
+Wdepths_AHD_sp$month <- as.factor(Wdepths_AHD_sp$month)
+Wdepths_AHD_sp$Wheat_sep <- as.numeric(Wdepths_AHD_sp$Wheat_sep)
+```
+
+##plot eastern suite depths
+```{r}
+
+ggp1 <-  
+  ggplot(data = Wdepths_AHD_sp, aes(x = Date)) +       # Create ggplot2 plot
+  geom_point(aes(y = Wheatfield), color = 'red') +
+  geom_point(aes(y = Wheat_sep), color = 'black') +
+  theme(legend.title = element_blank(),
+        legend.position = "right") +
+  ggtitle("Wheatfield") +
+    theme(plot.title = element_text(vjust = -10)) +
+    theme(plot.title = element_text(hjust = 0.5)) +
+  ylab("Depth AHD (m)\n")
+
+ggp2 <- ggplot(data = Wdepths_AHD_sp, aes(x = Date)) +       # Create ggplot2 plot
+  geom_point(aes(y = Woody), color = 'red') +
+  geom_point(aes(y = Wheat_sep), color = 'black') +
+   ggtitle("Woody") +
+    theme(plot.title = element_text(vjust = -10)) +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    ylab("Depth AHD (m)\n")
+
+ggp3 <- ggplot(data = Wdepths_AHD_sp, aes(x = Date)) +       # Create ggplot2 plot
+  geom_point(aes(y = Windabout, color = year)) +
+   ggtitle("Windabout") +
+    theme(plot.title = element_text(vjust = -10)) +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    ylab("Depth AHD (m)\n")
+
+ggp4 <- ggplot(data = Wdepths_AHD_sp, aes(x = Date)) +       # Create ggplot2 plot
+  geom_point(aes(y = Warden, color = year)) +
+   ggtitle("Warden") +
+    theme(plot.title = element_text(vjust = -10)) +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    ylab("Depth AHD (m)\n")
+```
+
+```{r}
+ggarrange(ggp1, ggp2, ggp3, ggp4, nrow=4, common.legend=TRUE, legend = "right")
+```
+
 
 ###Ordinations and associated analyses
 
@@ -375,7 +445,7 @@ Warden.spr.m <- read.csv("./outputs/Warden_spr_m.csv", row.names=1)
 ####MDS unconstrained ordination using metaMDS in package vegan to analyse effects of season within the Warden system
 ```{r}
 Warden.sum.MDS <- metaMDS(Warden.sum.m, distance = "bray", autotransform = TRUE)
-Warden.spr.MDS <- metaMDS(Warden.spr.m, distance = "bray", autotransform = TRUE)
+Warden.spr.MDS <- metaMDS(sqrt(Warden.spr.m), distance = "bray", autotransform = TRUE)
 ```
 
 ####Extract ordination point data for ggplots
@@ -390,6 +460,7 @@ Warden.spr.MDS.pts$Survey <- row.names(Warden.spr.MDS.pts)
 ####Load environmental data, extract pipeline operation days and create seasonal env matrices (for pipeline days only and for depth and other data)
 ```{r}
 av.depths <- read.csv("./raw_data/average depths.csv") #load data file with average depths (per survey) for gauged Warden wetlands plus other env data
+av.depths <- av.depths[order(av.depths$Survey), ] # order data by survey
 row.names(av.depths) <- av.depths$Survey
 av.depths <- av.depths[order(av.depths$Season, av.depths$Survey), ] #order alphabetically by season then survey
 Surv.spr <- av.depths[av.depths$Season == "Spring", "Days", drop=FALSE]
